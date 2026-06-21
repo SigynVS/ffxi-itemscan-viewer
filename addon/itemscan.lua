@@ -134,6 +134,8 @@ end
 * so 32-bit values stay safe as Lua doubles.
 --]]
 local function parse_roe(data)
+    -- Ordered list of { id, progress } preserving the packet's slot order, which
+    -- may match the in-game RoE menu order.
     local active = {};
     for i = 0, 29 do
         local pos = 5 + (i * 4); -- 1-based offset into the packet
@@ -145,7 +147,7 @@ local function parse_roe(data)
         local id = u32 % 4096;                         -- low 12 bits
         local progress = math.floor(u32 / 4096) % 1048576; -- next 20 bits
         if (id > 0) then
-            active[tostring(id)] = progress;
+            active[#active + 1] = { id = id, progress = progress };
         end
     end
     return active;
@@ -372,12 +374,10 @@ ashita.events.register('command', 'command_cb', function (e)
     end
 
     if (#args >= 2 and args[2]:lower() == 'roe') then
-        local n = 0;
-        for id, prog in pairs(itemscan.roe_active) do
-            n = n + 1;
-            print(('[itemscan] RoE id %s = progress %d'):fmt(id, prog));
+        for i, o in ipairs(itemscan.roe_active) do
+            print(('[itemscan] #%d slot %d: id %d = progress %d'):fmt(i, i, o.id, o.progress));
         end
-        print(('[itemscan] %d active RoE objectives currently captured.'):fmt(n));
+        print(('[itemscan] %d active RoE objectives currently captured.'):fmt(#itemscan.roe_active));
         return;
     end
 

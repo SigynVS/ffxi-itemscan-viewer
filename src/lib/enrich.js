@@ -43,19 +43,23 @@ function buildProgress(inventoryMax, ownedCounts) {
   });
 }
 
-// Turns the raw RoE map { id: progress } into a sorted list with names looked
-// up from roe_names.json (falls back to the bare id when no name is bundled).
-function buildRoe(roeMap) {
-  if (!roeMap || typeof roeMap !== 'object') {
-    return [];
+// Builds the RoE list with names looked up from roe_names.json. The addon now
+// sends an ordered array (packet slot order, which may match the in-game menu);
+// an older object form { id: progress } is still accepted for compatibility.
+function buildRoe(roe) {
+  if (Array.isArray(roe)) {
+    return roe.map((o) => ({
+      id: o.id,
+      progress: o.progress,
+      name: roeNames[String(o.id)] || null
+    }));
   }
-  return Object.entries(roeMap)
-    .map(([id, progress]) => ({
-      id: Number(id),
-      progress,
-      name: roeNames[id] || null
-    }))
-    .sort((a, b) => a.id - b.id);
+  if (roe && typeof roe === 'object') {
+    return Object.entries(roe)
+      .map(([id, progress]) => ({ id: Number(id), progress, name: roeNames[id] || null }))
+      .sort((a, b) => a.id - b.id);
+  }
+  return [];
 }
 
 // An active quest = a bit set in the area's "current" block but NOT in its
