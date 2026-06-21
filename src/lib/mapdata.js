@@ -26,11 +26,13 @@ function getZone(zoneId) {
 }
 
 // Atlas gameToPixels: net pixel = 4*(offset +/- scale*coord) in 1024px space.
-// Y axis is inverted. Returned as percentages so the dot scales with the image.
-function toPercent(cal, x, z) {
-  const px = 4 * (cal.offsetX + cal.scale * x);
-  const py = 4 * (cal.offsetY - cal.scale * z);
-  const clamp = (v) => Math.max(0, Math.min(100, v));
+// `h` drives the horizontal (east-west) pixel axis, `v` the vertical (north-
+// south, inverted). For Ashita (verified by movement): h = position.x (east=+x),
+// v = position.y; position.z is height.
+function toPercent(cal, h, v) {
+  const px = 4 * (cal.offsetX + cal.scale * h);
+  const py = 4 * (cal.offsetY - cal.scale * v);
+  const clamp = (n) => Math.max(0, Math.min(100, n));
   return { xPct: clamp(px / 1024 * 100), yPct: clamp(py / 1024 * 100) };
 }
 

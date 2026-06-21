@@ -23,7 +23,6 @@ const POSITION_PATH = path.join(path.dirname(INVENTORY_PATH), 'position.json');
 
 let mainWindow = null;
 let watchDebounce = null;
-let posDebounce = null;
 let lastMapName = null; // so the map image is only re-read on zone change
 let lastImageMissing = false; // keep retrying if the PNG wasn't found yet
 
@@ -75,7 +74,7 @@ function pushPosition() {
     const payload = { zone: pos.zone, hasCalibration: Boolean(cal), mapsDir: MAPS_DIR };
     if (cal) {
       payload.mapName = cal.mapName;
-      payload.dot = toPercent(cal, pos.x, pos.z);
+      payload.dot = toPercent(cal, pos.x, pos.y);
       if (cal.mapName !== lastMapName || lastImageMissing) {
         lastMapName = cal.mapName;
         const img = mapImageDataUrl(cal.mapName);
@@ -92,19 +91,16 @@ function pushPosition() {
   }
 }
 
-// Watches the addon's output dir for both inventory.json and position.json.
+// Watches the addon's output dir for inventory.json. position.json is polled
+// instead (below), since fs.watch is unreliable for a file rewritten 4x/sec.
 function watchInventory() {
   const dir = path.dirname(INVENTORY_PATH);
   const invBase = path.basename(INVENTORY_PATH);
-  const posBase = path.basename(POSITION_PATH);
   try {
     fs.watch(dir, (eventType, filename) => {
       if (filename === invBase) {
         clearTimeout(watchDebounce);
         watchDebounce = setTimeout(pushInventory, 250);
-      } else if (filename === posBase) {
-        clearTimeout(posDebounce);
-        posDebounce = setTimeout(pushPosition, 100);
       }
     });
   } catch (err) {
@@ -152,7 +148,12 @@ app.whenReady().then(() => {
   createWindow();
   watchInventory();
   // Initial load once the window is ready to receive it.
-  mainWindow.webContents.once('did-finish-load', pushInventory);
+  mainWindow.webContents.once('did-finish-load', () => {
+    pushInventory();
+    pushPosition();
+  });
+  // Poll position.json ~3x/sec for the live map dot (reliable vs fs.watch).
+  setInterval(pushPosition, 300);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
