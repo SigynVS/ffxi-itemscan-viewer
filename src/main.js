@@ -25,6 +25,7 @@ let mainWindow = null;
 let watchDebounce = null;
 let posDebounce = null;
 let lastMapName = null; // so the map image is only re-read on zone change
+let lastImageMissing = false; // keep retrying if the PNG wasn't found yet
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -75,10 +76,12 @@ function pushPosition() {
     if (cal) {
       payload.mapName = cal.mapName;
       payload.dot = toPercent(cal, pos.x, pos.z);
-      if (cal.mapName !== lastMapName) {
+      if (cal.mapName !== lastMapName || lastImageMissing) {
         lastMapName = cal.mapName;
+        const img = mapImageDataUrl(cal.mapName);
+        lastImageMissing = (img === null); // retry next tick until the file appears
         payload.imageChanged = true;
-        payload.image = mapImageDataUrl(cal.mapName); // null if the pack lacks it
+        payload.image = img; // null if the pack lacks it
       }
     } else {
       lastMapName = null;
