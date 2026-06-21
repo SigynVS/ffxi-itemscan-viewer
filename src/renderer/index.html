@@ -33,6 +33,17 @@
 
   <div id="error" class="error hidden"></div>
 
+  <details id="mapPanel" class="map-panel" open>
+    <summary>Map <span id="mapZone" class="panel-note"></span></summary>
+    <div id="mapView" class="map-view">
+      <div class="map-inner">
+        <img id="mapImg" alt="zone map" />
+        <div id="mapDot" class="map-dot hidden"></div>
+      </div>
+      <div id="mapMsg" class="map-msg">Run <code>/itemscan map</code> in-game to start position tracking.</div>
+    </div>
+  </details>
+
   <section id="progress" class="progress"></section>
 
   <details id="questPanel" class="quests-panel">

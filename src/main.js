@@ -11,14 +11,20 @@ const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.ico');
 const { enrichInventory } = require('./lib/enrich');
 const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
+const { getZone, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapdata');
 
 // Path to the inventory.json written by the Ashita itemscan addon.
 // Override with the ITEMSCAN_PATH environment variable if your install differs.
 const INVENTORY_PATH = process.env.ITEMSCAN_PATH
   || 'C:\\Ashita4\\addons\\itemscan\\inventory.json';
 
+// position.json is written by the addon beside inventory.json.
+const POSITION_PATH = path.join(path.dirname(INVENTORY_PATH), 'position.json');
+
 let mainWindow = null;
 let watchDebounce = null;
+let posDebounce = null;
+let lastMapName = null; // so the map image is only re-read on zone change
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -56,16 +62,46 @@ async function pushInventory() {
   }
 }
 
-// Watches the inventory file and re-pushes on change (debounced ~250ms,
-// since editors/writers often fire multiple events per save).
+// Reads position.json, resolves zone calibration + dot position, and pushes to
+// the renderer. The map image is only re-read (and sent) when the zone changes.
+function pushPosition() {
+  if (mainWindow === null) {
+    return;
+  }
+  try {
+    const pos = JSON.parse(fs.readFileSync(POSITION_PATH, 'utf8'));
+    const cal = getZone(pos.zone);
+    const payload = { zone: pos.zone, hasCalibration: Boolean(cal), mapsDir: MAPS_DIR };
+    if (cal) {
+      payload.mapName = cal.mapName;
+      payload.dot = toPercent(cal, pos.x, pos.z);
+      if (cal.mapName !== lastMapName) {
+        lastMapName = cal.mapName;
+        payload.imageChanged = true;
+        payload.image = mapImageDataUrl(cal.mapName); // null if the pack lacks it
+      }
+    } else {
+      lastMapName = null;
+    }
+    mainWindow.webContents.send('position:update', payload);
+  } catch (err) {
+    // No position.json yet (map tracking off / not in-game) — ignore.
+  }
+}
+
+// Watches the addon's output dir for both inventory.json and position.json.
 function watchInventory() {
   const dir = path.dirname(INVENTORY_PATH);
-  const base = path.basename(INVENTORY_PATH);
+  const invBase = path.basename(INVENTORY_PATH);
+  const posBase = path.basename(POSITION_PATH);
   try {
     fs.watch(dir, (eventType, filename) => {
-      if (filename === base) {
+      if (filename === invBase) {
         clearTimeout(watchDebounce);
         watchDebounce = setTimeout(pushInventory, 250);
+      } else if (filename === posBase) {
+        clearTimeout(posDebounce);
+        posDebounce = setTimeout(pushPosition, 100);
       }
     });
   } catch (err) {

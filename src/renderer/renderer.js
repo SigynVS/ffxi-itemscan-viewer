@@ -66,6 +66,10 @@ const statsEl = document.getElementById('stats');
 const questCountEl = document.getElementById('questCount');
 const questListEl = document.getElementById('questList');
 const missionGridEl = document.getElementById('missionGrid');
+const mapZoneEl = document.getElementById('mapZone');
+const mapImgEl = document.getElementById('mapImg');
+const mapDotEl = document.getElementById('mapDot');
+const mapMsgEl = document.getElementById('mapMsg');
 const roeCountEl = document.getElementById('roeCount');
 const roeListEl = document.getElementById('roeList');
 
@@ -363,6 +367,38 @@ window.itemscan.onInventory(async (data) => {
   renderMissions(data.missions);
   renderRoe(data.roe, data.character);
   render();
+});
+
+// Live map updates from position.json. Image only arrives on zone change; the
+// dot moves every update via percentage positioning (scales with the image).
+window.itemscan.onPosition((p) => {
+  mapZoneEl.textContent = `zone ${p.zone}`;
+  if (!p.hasCalibration) {
+    mapImgEl.style.display = 'none';
+    mapDotEl.classList.add('hidden');
+    mapMsgEl.textContent = `No map calibration for zone ${p.zone}.`;
+    mapMsgEl.style.display = '';
+    return;
+  }
+  if (p.imageChanged) {
+    if (p.image) {
+      mapImgEl.src = p.image;
+      mapImgEl.style.display = '';
+      mapMsgEl.style.display = 'none';
+    } else {
+      mapImgEl.style.display = 'none';
+      mapMsgEl.innerHTML = `No image for <b>${p.mapName}.png</b>. `
+        + `Unzip the remapster wiki pack into:<br><code>${p.mapsDir}</code>`;
+      mapMsgEl.style.display = '';
+    }
+  }
+  if (p.dot && mapImgEl.style.display !== 'none') {
+    mapDotEl.style.left = p.dot.xPct + '%';
+    mapDotEl.style.top = p.dot.yPct + '%';
+    mapDotEl.classList.remove('hidden');
+  } else {
+    mapDotEl.classList.add('hidden');
+  }
 });
 
 window.itemscan.onError((data) => {
