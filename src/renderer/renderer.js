@@ -70,6 +70,8 @@ const mapZoneEl = document.getElementById('mapZone');
 const mapImgEl = document.getElementById('mapImg');
 const mapDotEl = document.getElementById('mapDot');
 const mapMsgEl = document.getElementById('mapMsg');
+const openMapsFolderEl = document.getElementById('openMapsFolder');
+const mapDirHintEl = document.getElementById('mapDirHint');
 const roeCountEl = document.getElementById('roeCount');
 const roeListEl = document.getElementById('roeList');
 
@@ -388,7 +390,8 @@ window.itemscan.onPosition((p) => {
     } else {
       mapImgEl.style.display = 'none';
       mapMsgEl.innerHTML = `No image for <b>${p.mapName}.png</b>. `
-        + `Unzip the remapster wiki pack into:<br><code>${p.mapsDir}</code>`;
+        + 'Click <b>Open maps folder</b> above and drop the PNGs there '
+        + '(from remapster-wiki-pack-1-1024).';
       mapMsgEl.style.display = '';
     }
   }
@@ -453,3 +456,24 @@ speedEl.addEventListener('change', () => {
 });
 // Apply the default speed once on load.
 window.itemscan.setConcurrency(parseInt(speedEl.value, 10));
+
+async function initMapsDirHint() {
+  try {
+    const dir = await window.itemscan.getMapsDir();
+    mapDirHintEl.textContent = dir;
+  } catch (err) {
+    mapDirHintEl.textContent = '';
+  }
+}
+
+openMapsFolderEl.addEventListener('click', async () => {
+  try {
+    const dir = await window.itemscan.openMapsFolder();
+    mapDirHintEl.textContent = dir;
+  } catch (err) {
+    mapMsgEl.textContent = 'Could not open maps folder: ' + err.message;
+    mapMsgEl.style.display = '';
+  }
+});
+
+initMapsDirHint();

@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('itemscan', {
   getCachedPrices: (itemIds) => ipcRenderer.invoke('price:cached', itemIds),
   setConcurrency: (n) => ipcRenderer.invoke('price:concurrency', n),
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
+  openMapsFolder: () => ipcRenderer.invoke('map:openFolder'),
+  getMapsDir: () => ipcRenderer.invoke('map:dir'),
   getRoeLabels: (character) => ipcRenderer.invoke('roe:labels', character),
   setRoeLabel: (character, id, name) =>
     ipcRenderer.invoke('roe:setLabel', { character, id, name })

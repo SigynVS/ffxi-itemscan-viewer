@@ -127,6 +127,16 @@ ipcMain.handle('roe:labels', (_event, character) => getLabels(character));
 ipcMain.handle('roe:setLabel', (_event, { character, id, name }) =>
   setLabel(character, id, name));
 
+// Opens (creating if needed) the maps folder so the user can drop the pack in.
+ipcMain.handle('map:openFolder', () => {
+  try {
+    fs.mkdirSync(MAPS_DIR, { recursive: true });
+  } catch (err) { /* ignore */ }
+  shell.openPath(MAPS_DIR);
+  return MAPS_DIR;
+});
+ipcMain.handle('map:dir', () => MAPS_DIR);
+
 // Opens a URL in the user's default browser. Restricted to the two FFXI
 // reference sites so the renderer can't be tricked into opening arbitrary URLs.
 ipcMain.handle('open:external', (_event, url) => {

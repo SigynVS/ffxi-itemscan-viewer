@@ -35,12 +35,16 @@
 
   <details id="mapPanel" class="map-panel" open>
     <summary>Map <span id="mapZone" class="panel-note"></span></summary>
+    <div class="map-toolbar">
+      <button id="openMapsFolder" type="button" class="map-open-btn">Open maps folder</button>
+      <span id="mapDirHint" class="maps-dir-hint"></span>
+    </div>
     <div id="mapView" class="map-view">
       <div class="map-inner">
         <img id="mapImg" alt="zone map" />
         <div id="mapDot" class="map-dot hidden"></div>
       </div>
-      <div id="mapMsg" class="map-msg">Run <code>/itemscan map</code> in-game to start position tracking.</div>
+      <div id="mapMsg" class="map-msg">Run <code>/itemscan map</code> in-game, then click <b>Open maps folder</b> to drop in the remapster PNG pack.</div>
     </div>
   </details>
 
