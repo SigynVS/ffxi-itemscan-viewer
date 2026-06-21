@@ -119,6 +119,13 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 .dash { color: #55555f; }
 .use { color: var(--green); font-size: 10px; vertical-align: middle; }
 
+.quests-panel { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
+.quests-panel summary { cursor: pointer; color: var(--text); font-weight: 600; }
+.quest-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 4px 16px; margin-top: 10px; }
+.quest-item { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding: 2px 0; }
+.quest-qname { color: var(--text); }
+.quest-area { color: var(--muted); font-size: 11px; align-self: center; }
+
 .missions { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
 .missions summary { cursor: pointer; color: var(--text); font-weight: 600; }
 .mission-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; margin-top: 10px; }

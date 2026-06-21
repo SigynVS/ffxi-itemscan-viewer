@@ -28,4 +28,7 @@ const quests = loadJson('quests.json');
 // Records of Eminence: { "<objectiveId>": "<objective name>" }
 const roeNames = loadJson('roe_names.json');
 
-module.exports = { vendorPrices, gobbiebag, quests, roeNames };
+// Active-quest names by area: { "<area>": { "<questId>": "<name>" } }
+const questNames = loadJson('quest_names.json');
+
+module.exports = { vendorPrices, gobbiebag, quests, roeNames, questNames };

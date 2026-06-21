@@ -49,7 +49,41 @@ local itemscan = T{
     auto = false,
     roe_active = {}, -- objective id -> progress, captured from packet 0x111
     missions = {},   -- storyline -> raw current-mission stage, from packet 0x056
+    quests = {},     -- area -> { current = {ids}, completed = {ids} }, from 0x056
+    quest_raw = nil, -- raw bytes of the last 0x0070 packet, for offset verification
 };
+
+-- Quest-log blocks within packet 0x056: Type selector -> { area, state }.
+-- Source: Ivaar's Windower QuestLog addon quest_logs table.
+local quest_types = {
+    [0x0070] = { 'other',     'current' },
+    [0x00B0] = { 'other',     'completed' },
+    [0x00E0] = { 'abyssea',   'current' },
+    [0x00E8] = { 'abyssea',   'completed' },
+    [0x00F0] = { 'adoulin',   'current' },
+    [0x00F8] = { 'adoulin',   'completed' },
+    [0x0100] = { 'coalition', 'current' },
+    [0x0108] = { 'coalition', 'completed' },
+};
+
+-- Quest flag payload is assumed to start right after the 4-byte header, i.e.
+-- 1-based byte 5, running up to the Type selector at 0x25 (32 bytes = 256 bits).
+-- This start offset is UNVERIFIED — confirm with /itemscan questdump in-game.
+local QUEST_BITS_START = 0x05;
+local QUEST_BIT_COUNT  = 256;
+
+-- Reads the quest bitfield and returns a list of set quest ids (bit indices,
+-- LSB-first per byte).
+local function parse_quest_bits(data)
+    local ids = {};
+    for b = 0, QUEST_BIT_COUNT - 1 do
+        local byte = data:byte(QUEST_BITS_START + math.floor(b / 8));
+        if (byte ~= nil and (math.floor(byte / (2 ^ (b % 8))) % 2) == 1) then
+            ids[#ids + 1] = b;
+        end
+    end
+    return ids;
+end
 
 -- Little-endian readers. pos is 1-based (matches Ashita's data:byte()).
 local function u16(data, pos)
@@ -244,6 +278,7 @@ local function do_scan()
         rank_points   = rank_points,
         roe           = itemscan.roe_active,
         missions      = itemscan.missions,
+        quests        = itemscan.quests,
         items         = collect_inventory(),
     };
 
@@ -293,6 +328,39 @@ ashita.events.register('command', 'command_cb', function (e)
         return;
     end
 
+    if (#args >= 2 and args[2]:lower() == 'quests') then
+        for area, blocks in pairs(itemscan.quests) do
+            local cur = blocks.current or {};
+            local done = {};
+            for _, id in ipairs(blocks.completed or {}) do done[id] = true; end
+            local active = {};
+            for _, id in ipairs(cur) do
+                if (not done[id]) then active[#active + 1] = id; end
+            end
+            print(('[itemscan] %s: %d current, %d completed, %d ACTIVE'):fmt(
+                area, #cur, #(blocks.completed or {}), #active));
+            local sample = {};
+            for i = 1, math.min(8, #active) do sample[i] = active[i]; end
+            if (#sample > 0) then
+                print(('[itemscan]   active ids: %s'):fmt(table.concat(sample, ', ')));
+            end
+        end
+        return;
+    end
+
+    if (#args >= 2 and args[2]:lower() == 'questdump') then
+        if (itemscan.quest_raw == nil) then
+            print('[itemscan] No 0x0070 packet captured yet. Zone first.');
+            return;
+        end
+        local hex = {};
+        for i = 1, math.min(40, #itemscan.quest_raw) do
+            hex[i] = ('%02X'):fmt(itemscan.quest_raw:byte(i));
+        end
+        print(('[itemscan] 0x0070 raw bytes: %s'):fmt(table.concat(hex, ' ')));
+        return;
+    end
+
     if (#args >= 2 and args[2]:lower() == 'missions') then
         local m = itemscan.missions;
         local order = T{ 'nation', 'zilart', 'promathia', 'aht_urhgan', 'assault',
@@ -321,7 +389,15 @@ end);
 ashita.events.register('packet_in', 'packet_in_cb', function (e)
     if (e.id == 0x056) then
         local mtype = parse_missions(e.data);
-        print(('[itemscan] Mission packet 0x056 type 0x%04X (size %d).'):fmt(mtype or 0, e.size));
+        local q = quest_types[mtype];
+        if (q ~= nil) then
+            local area, state = q[1], q[2];
+            itemscan.quests[area] = itemscan.quests[area] or {};
+            itemscan.quests[area][state] = parse_quest_bits(e.data);
+            if (mtype == 0x0070) then
+                itemscan.quest_raw = e.data; -- keep for offset verification
+            end
+        end
         if (itemscan.auto) then
             do_scan();
         end

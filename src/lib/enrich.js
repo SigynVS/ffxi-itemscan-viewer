@@ -1,6 +1,6 @@
 'use strict';
 
-const { vendorPrices, gobbiebag, quests, roeNames } = require('./datasets');
+const { vendorPrices, gobbiebag, quests, roeNames, questNames } = require('./datasets');
 
 const BASE_INVENTORY = 30;       // Slots before any Gobbiebag quest.
 const SLOTS_PER_PART = 5;        // Each completed Gobbiebag quest adds 5.
@@ -58,6 +58,25 @@ function buildRoe(roeMap) {
     .sort((a, b) => a.id - b.id);
 }
 
+// An active quest = a bit set in the area's "current" block but NOT in its
+// "completed" block. Names come from the bundled quest_names.json per area.
+function buildActiveQuests(questData) {
+  if (!questData || typeof questData !== 'object') {
+    return [];
+  }
+  const result = [];
+  for (const [area, blocks] of Object.entries(questData)) {
+    const completed = new Set(blocks.completed || []);
+    const names = questNames[area] || {};
+    for (const id of (blocks.current || [])) {
+      if (!completed.has(id)) {
+        result.push({ area, id, name: names[String(id)] || null });
+      }
+    }
+  }
+  return result.sort((a, b) => a.area.localeCompare(b.area) || a.id - b.id);
+}
+
 function enrichInventory(data) {
   const items = Array.isArray(data.items) ? data.items : [];
 
@@ -91,6 +110,7 @@ function enrichInventory(data) {
     rankPoints: data.rank_points || null,
     roe: buildRoe(data.roe),
     missions: data.missions || {},
+    activeQuests: buildActiveQuests(data.quests),
     count: enriched.length,
     progress: buildProgress(data.inventory_max || 0, ownedCounts),
     items: enriched

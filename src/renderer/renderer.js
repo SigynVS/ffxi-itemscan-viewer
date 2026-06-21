@@ -64,6 +64,8 @@ const getPricesEl = document.getElementById('getPrices');
 const speedEl = document.getElementById('speed');
 const statsEl = document.getElementById('stats');
 const fameGridEl = document.getElementById('fameGrid');
+const questCountEl = document.getElementById('questCount');
+const questListEl = document.getElementById('questList');
 const missionGridEl = document.getElementById('missionGrid');
 const roeCountEl = document.getElementById('roeCount');
 const roeListEl = document.getElementById('roeList');
@@ -142,6 +144,30 @@ function render() {
     </tr>`;
   }).join('');
   metaEl.textContent = `${visible.length} of ${allItems.length} items shown`;
+}
+
+// Active quests captured from packet 0x056 (current bits minus completed bits).
+const QUEST_AREA_LABELS = {
+  other: 'Nations / Jeuno / Misc', abyssea: 'Abyssea',
+  adoulin: 'Adoulin', coalition: 'Coalition'
+};
+
+function renderQuests(activeQuests) {
+  const list = activeQuests || [];
+  questCountEl.textContent = `(${list.length} active)`;
+  if (!list.length) {
+    questListEl.innerHTML = '<div class="muted">No active quests captured yet. '
+      + 'Zone once so the game sends the quest packets, then rescan.</div>';
+    return;
+  }
+  questListEl.innerHTML = list.map((q) => {
+    const name = q.name ? escapeHtml(q.name) : `Quest #${q.id}`;
+    const area = QUEST_AREA_LABELS[q.area] || q.area;
+    return `<div class="quest-item">
+      <span class="quest-qname">${name}</span>
+      <span class="quest-area">${escapeHtml(area)}</span>
+    </div>`;
+  }).join('');
 }
 
 // Storyline display order + labels. Values are the raw current-mission stage
@@ -357,6 +383,7 @@ window.itemscan.onInventory(async (data) => {
   metaEl.textContent = `${data.character} — ${data.count} items — scanned ${when}`;
   renderProgress(data);
   renderStats();
+  renderQuests(data.activeQuests);
   renderMissions(data.missions);
   renderRoe(data.roe, data.character);
   renderFame(data.character);
