@@ -2,3 +2,5 @@ node_modules/
 dist/
 data/price_cache.json
 *.log
+maps/
+*.png

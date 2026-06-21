@@ -51,6 +51,8 @@ local itemscan = T{
     missions = {},   -- storyline -> raw current-mission stage, from packet 0x056
     quests = {},     -- area -> { current = {ids}, completed = {ids} }, from 0x056
     quest_raw = nil, -- raw bytes of the last 0x0070 packet, for offset verification
+    maptrack = false,-- when true, write position.json each ~15 frames for the map
+    frame = 0,       -- frame counter for throttling position writes
 };
 
 -- Quest-log blocks within packet 0x056: Type selector -> { area, state }.
@@ -296,6 +298,34 @@ local function do_scan()
     print(('[itemscan] Wrote %d items to inventory.json'):fmt(#payload.items));
 end
 
+--[[
+* Writes the player's current zone + position to position.json for the external
+* map display. Kept separate from inventory.json so it can update frequently
+* without rewriting the large inventory payload. All three axes are exported so
+* the viewer can pick the correct horizontal pair (verify against movement).
+--]]
+local function write_position()
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    local ent   = AshitaCore:GetMemoryManager():GetEntity();
+    if (party == nil or ent == nil) then return; end
+    local idx = party:GetMemberTargetIndex(0);
+    if (idx == nil or idx == 0) then return; end
+
+    local payload = T{
+        zone      = party:GetMemberZone(0),
+        x         = ent:GetLocalPositionX(idx),
+        y         = ent:GetLocalPositionY(idx),
+        z         = ent:GetLocalPositionZ(idx),
+        heading   = ent:GetLocalPositionYaw(idx),
+        timestamp = os.time(),
+    };
+
+    local file = io.open(('%s\\position.json'):fmt(addon.path), 'w');
+    if (file == nil) then return; end
+    file:write(json.encode(payload));
+    file:close();
+end
+
 ashita.events.register('command', 'command_cb', function (e)
     local args = e.command:args();
     if (#args == 0 or args[1] ~= '/itemscan') then
@@ -327,6 +357,12 @@ ashita.events.register('command', 'command_cb', function (e)
                 print(('[itemscan]   %s -> (nil/error)'):fmt(t));
             end
         end);
+        return;
+    end
+
+    if (#args >= 2 and args[2]:lower() == 'map') then
+        itemscan.maptrack = not itemscan.maptrack;
+        print(('[itemscan] Map position tracking %s.'):fmt(itemscan.maptrack and 'ON' or 'OFF'));
         return;
     end
 
@@ -415,5 +451,18 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
     end
     if (itemscan.auto and e.id == 0x001D) then
         do_scan();
+    end
+end);
+
+-- Throttled position writer for the map display (~4x/sec at 60fps). Only active
+-- when map tracking is toggled on via /itemscan map.
+ashita.events.register('d3d_present', 'present_cb', function ()
+    if (not itemscan.maptrack) then
+        return;
+    end
+    itemscan.frame = itemscan.frame + 1;
+    if (itemscan.frame >= 15) then
+        itemscan.frame = 0;
+        write_position();
     end
 end);
