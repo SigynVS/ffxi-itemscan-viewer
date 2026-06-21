@@ -15,10 +15,4 @@ function cachePath() {
   return path.join(app.getPath('userData'), 'price_cache.json');
 }
 
-// Manually-entered fame levels, keyed by character then area. Writable, so it
-// lives under per-user app-data alongside the price cache.
-function famePath() {
-  return path.join(app.getPath('userData'), 'fame.json');
-}
-
-module.exports = { DATA_DIR, cachePath, famePath };
+module.exports = { DATA_DIR, cachePath };

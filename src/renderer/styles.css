@@ -145,14 +145,7 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 .roe-name-input::placeholder { color: #5a5a66; }
 .roe-prog { color: var(--accent); font-variant-numeric: tabular-nums; align-self: center; }
 
-.fame { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
-.fame summary { cursor: pointer; color: var(--text); font-weight: 600; }
-.fame-note { color: var(--muted); font-weight: 400; font-size: 11px; }
-.fame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 16px; margin-top: 10px; }
-.fame-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.fame-area { color: var(--muted); }
-.fame-row.capped .fame-area { color: var(--gold); }
-.fame-sel { background: var(--row); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
+.panel-note { color: var(--muted); font-weight: 400; font-size: 11px; }
 .muted { color: var(--muted); }
 
 .progress { padding: 10px 14px 0; }

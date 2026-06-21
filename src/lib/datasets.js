@@ -31,4 +31,7 @@ const roeNames = loadJson('roe_names.json');
 // Active-quest names by area: { "<area>": { "<questId>": "<name>" } }
 const questNames = loadJson('quest_names.json');
 
-module.exports = { vendorPrices, gobbiebag, quests, roeNames, questNames };
+// Mission names by storyline: { "<storyline>": { "<rawValue>": "<name>" } }
+const missionNames = loadJson('mission_names.json');
+
+module.exports = { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames };

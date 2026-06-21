@@ -10,7 +10,6 @@ const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.ico');
 
 const { enrichInventory } = require('./lib/enrich');
 const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
-const { getFame, setFame } = require('./lib/fame');
 const { getLabels, setLabel } = require('./lib/roelabels');
 
 // Path to the inventory.json written by the Ashita itemscan addon.
@@ -91,11 +90,6 @@ ipcMain.handle('price:concurrency', (_event, n) => {
 ipcMain.handle('roe:labels', (_event, character) => getLabels(character));
 ipcMain.handle('roe:setLabel', (_event, { character, id, name }) =>
   setLabel(character, id, name));
-
-// Fame tracker: load levels for a character, and persist edits.
-ipcMain.handle('fame:get', (_event, character) => getFame(character));
-ipcMain.handle('fame:set', (_event, { character, area, level }) =>
-  setFame(character, area, level));
 
 // Opens a URL in the user's default browser. Restricted to the two FFXI
 // reference sites so the renderer can't be tricked into opening arbitrary URLs.

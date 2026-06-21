@@ -63,7 +63,6 @@ const onlyQuestEl = document.getElementById('onlyQuest');
 const getPricesEl = document.getElementById('getPrices');
 const speedEl = document.getElementById('speed');
 const statsEl = document.getElementById('stats');
-const fameGridEl = document.getElementById('fameGrid');
 const questCountEl = document.getElementById('questCount');
 const questListEl = document.getElementById('questList');
 const missionGridEl = document.getElementById('missionGrid');
@@ -185,17 +184,21 @@ const MISSION_LINES = [
   { key: 'voracious', label: 'The Voracious Resurgence' }
 ];
 
-function missionValueText(val, raw) {
-  if (val === undefined || val === null) {
+function missionValueText(entry, raw) {
+  if (!entry || entry.value === undefined || entry.value === null) {
     return '<span class="dash">—</span>';
   }
-  if (val === 65535) {
+  const v = entry.value;
+  if (v === 65535) {
     return '<span class="muted">none / complete</span>';
   }
-  if (val === 0) {
+  if (v === 0) {
     return '<span class="muted">not started</span>';
   }
-  return `stage ${val}${raw ? ' <span class="muted">(raw)</span>' : ''}`;
+  if (entry.name) {
+    return escapeHtml(entry.name);
+  }
+  return `stage ${v}${raw ? ' <span class="muted">(raw)</span>' : ''}`;
 }
 
 function renderMissions(missions) {
@@ -237,33 +240,6 @@ async function renderRoe(roe, character) {
   roeListEl.querySelectorAll('.roe-name-input').forEach((inp) => {
     inp.addEventListener('change', () => {
       window.itemscan.setRoeLabel(character, inp.dataset.id, inp.value);
-    });
-  });
-}
-
-// Renders the manual fame tracker for the current character. Each area gets a
-// 0-9 selector; edits persist immediately. Level 6 is the quest-unlock cap.
-async function renderFame(character) {
-  if (!character || character === 'Unknown') {
-    fameGridEl.innerHTML = '<div class="muted">Scan in-game to load fame for your character.</div>';
-    return;
-  }
-  const { areas, levels } = await window.itemscan.getFame(character);
-  fameGridEl.innerHTML = areas.map((area) => {
-    const lvl = levels[area] || 0;
-    const opts = Array.from({ length: 10 }, (_, i) =>
-      `<option value="${i}" ${i === lvl ? 'selected' : ''}>${i}</option>`).join('');
-    const capped = lvl >= 6 ? ' capped' : '';
-    return `<label class="fame-row${capped}">
-      <span class="fame-area">${escapeHtml(area)}</span>
-      <select class="fame-sel" data-area="${escapeHtml(area)}">${opts}</select>
-    </label>`;
-  }).join('');
-
-  fameGridEl.querySelectorAll('.fame-sel').forEach((sel) => {
-    sel.addEventListener('change', async () => {
-      await window.itemscan.setFame(character, sel.dataset.area, parseInt(sel.value, 10));
-      sel.closest('.fame-row').classList.toggle('capped', parseInt(sel.value, 10) >= 6);
     });
   });
 }
@@ -386,7 +362,6 @@ window.itemscan.onInventory(async (data) => {
   renderQuests(data.activeQuests);
   renderMissions(data.missions);
   renderRoe(data.roe, data.character);
-  renderFame(data.character);
   render();
 });
 

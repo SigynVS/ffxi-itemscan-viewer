@@ -1,6 +1,6 @@
 'use strict';
 
-const { vendorPrices, gobbiebag, quests, roeNames, questNames } = require('./datasets');
+const { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames } = require('./datasets');
 
 const BASE_INVENTORY = 30;       // Slots before any Gobbiebag quest.
 const SLOTS_PER_PART = 5;        // Each completed Gobbiebag quest adds 5.
@@ -81,6 +81,17 @@ function buildActiveQuests(questData) {
   return result.sort((a, b) => a.area.localeCompare(b.area) || a.id - b.id);
 }
 
+// Attaches a bundled name to each storyline's raw current-mission value.
+// Name is null when the dataset doesn't cover that value (or that storyline).
+function resolveMissions(missions) {
+  const out = {};
+  for (const [key, value] of Object.entries(missions || {})) {
+    const names = missionNames[key] || {};
+    out[key] = { value, name: names[String(value)] || null };
+  }
+  return out;
+}
+
 function enrichInventory(data) {
   const items = Array.isArray(data.items) ? data.items : [];
 
@@ -113,7 +124,7 @@ function enrichInventory(data) {
     rank: data.rank || null,
     rankPoints: data.rank_points || null,
     roe: buildRoe(data.roe),
-    missions: data.missions || {},
+    missions: resolveMissions(data.missions),
     activeQuests: buildActiveQuests(data.quests),
     count: enriched.length,
     progress: buildProgress(data.inventory_max || 0, ownedCounts),
