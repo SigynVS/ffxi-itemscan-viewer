@@ -1,0 +1,42 @@
+{
+  "name": "ffxi-itemscan-viewer",
+  "version": "0.1.0",
+  "description": "Second-monitor viewer for the Ashita itemscan addon. Reads inventory.json and enriches each item with description, vendor price, live FFXIAH price, gobbiebag flag, and quest turn-ins.",
+  "main": "src/main.js",
+  "author": "Brian Justice",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.brianjustice.ffxi-itemscan-viewer",
+    "productName": "FFXI Item Scan",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "data",
+        "to": "data",
+        "filter": ["**/*", "!price_cache.json"]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
