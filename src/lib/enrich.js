@@ -86,11 +86,6 @@ function buildActiveQuests(questData) {
 // player's nation id (0/1/2). Name is null when the dataset can't cover it.
 const NATION_KEYS = ['sandoria', 'bastok', 'windurst'];
 
-// CoP's "current mission" pointer parks far past its final stage once complete,
-// and its ids don't map cleanly to a name table (per Darkstar). Treat an
-// out-of-range value as completed rather than showing a meaningless number.
-const COP_MAX_STAGE = 100;
-
 function resolveMissions(missions, nationId) {
   const out = {};
   for (const [key, value] of Object.entries(missions || {})) {
@@ -98,11 +93,7 @@ function resolveMissions(missions, nationId) {
     if (key === 'nation') {
       table = (typeof nationId === 'number' && table[NATION_KEYS[nationId]]) || {};
     }
-    let name = table[String(value)] || null;
-    if (name === null && key === 'promathia' && value > COP_MAX_STAGE) {
-      name = 'Complete';
-    }
-    out[key] = { value, name };
+    out[key] = { value, name: table[String(value)] || null };
   }
   return out;
 }
