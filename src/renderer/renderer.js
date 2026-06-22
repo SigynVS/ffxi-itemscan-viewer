@@ -166,10 +166,12 @@ function renderQuests(activeQuests) {
     return;
   }
   questListEl.innerHTML = list.map((q) => {
-    const name = q.name ? escapeHtml(q.name) : `Quest #${q.id}`;
     const area = QUEST_AREA_LABELS[q.area] || q.area;
+    const nameCell = q.name
+      ? `<span class="mission-link quest-qname" data-wiki="${escapeHtml(q.name)}">${escapeHtml(q.name)}</span>`
+      : `<span class="quest-qname">Quest #${q.id}</span>`;
     return `<div class="quest-item">
-      <span class="quest-qname">${name}</span>
+      ${nameCell}
       <span class="quest-area">${escapeHtml(area)}</span>
     </div>`;
   }).join('');
@@ -475,13 +477,17 @@ document.querySelectorAll('.tab').forEach((tab) => {
   });
 });
 
-// Mission names link to their BG-Wiki page.
-missionGridEl.addEventListener('click', (e) => {
-  const link = e.target.closest('.mission-link');
-  if (link) {
-    window.itemscan.openExternal(`https://www.bg-wiki.com/ffxi/${encodeURIComponent(link.dataset.wiki)}`);
-  }
-});
+// Mission + quest names link to their BG-Wiki page.
+function wireWikiLinks(container) {
+  container.addEventListener('click', (e) => {
+    const link = e.target.closest('.mission-link');
+    if (link) {
+      window.itemscan.openExternal(`https://www.bg-wiki.com/ffxi/${encodeURIComponent(link.dataset.wiki)}`);
+    }
+  });
+}
+wireWikiLinks(missionGridEl);
+wireWikiLinks(questListEl);
 
 searchEl.addEventListener('input', render);
 onlyVendorEl.addEventListener('change', render);
