@@ -81,13 +81,28 @@ function buildActiveQuests(questData) {
   return result.sort((a, b) => a.area.localeCompare(b.area) || a.id - b.id);
 }
 
-// Attaches a bundled name to each storyline's raw current-mission value.
-// Name is null when the dataset doesn't cover that value (or that storyline).
-function resolveMissions(missions) {
+// Attaches a bundled name to each storyline's raw current-mission value. The
+// nation table is nested by city (sandoria/bastok/windurst), selected by the
+// player's nation id (0/1/2). Name is null when the dataset can't cover it.
+const NATION_KEYS = ['sandoria', 'bastok', 'windurst'];
+
+// CoP's "current mission" pointer parks far past its final stage once complete,
+// and its ids don't map cleanly to a name table (per Darkstar). Treat an
+// out-of-range value as completed rather than showing a meaningless number.
+const COP_MAX_STAGE = 100;
+
+function resolveMissions(missions, nationId) {
   const out = {};
   for (const [key, value] of Object.entries(missions || {})) {
-    const names = missionNames[key] || {};
-    out[key] = { value, name: names[String(value)] || null };
+    let table = missionNames[key] || {};
+    if (key === 'nation') {
+      table = (typeof nationId === 'number' && table[NATION_KEYS[nationId]]) || {};
+    }
+    let name = table[String(value)] || null;
+    if (name === null && key === 'promathia' && value > COP_MAX_STAGE) {
+      name = 'Complete';
+    }
+    out[key] = { value, name };
   }
   return out;
 }
@@ -124,7 +139,7 @@ function enrichInventory(data) {
     rank: data.rank || null,
     rankPoints: data.rank_points || null,
     roe: buildRoe(data.roe),
-    missions: resolveMissions(data.missions),
+    missions: resolveMissions(data.missions, data.nation),
     activeQuests: buildActiveQuests(data.quests),
     count: enriched.length,
     progress: buildProgress(data.inventory_max || 0, ownedCounts),
