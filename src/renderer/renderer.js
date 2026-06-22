@@ -198,12 +198,12 @@ function missionValueCell(line, entry, labels) {
     return '<span class="dash">—</span>';
   }
   const v = entry.value;
-  if (v === 65535) { return '<span class="muted">none / complete</span>'; }
+  if (v === 65535) { return '<span class="muted">Completed</span>'; }
   if (v === 0) { return '<span class="muted">not started</span>'; }
   const labelKey = `${line.key}:${v}`;
   const name = labels[labelKey] || entry.name;
   if (name) {
-    return escapeHtml(name);
+    return `<span class="mission-link" data-wiki="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
   }
   return `<input class="mission-input" data-key="${labelKey}"
     placeholder="stage ${v} — type the mission name" />`;
@@ -469,6 +469,14 @@ document.querySelectorAll('.tab').forEach((tab) => {
       p.classList.toggle('active', p.dataset.panel === name);
     });
   });
+});
+
+// Mission names link to their BG-Wiki page.
+missionGridEl.addEventListener('click', (e) => {
+  const link = e.target.closest('.mission-link');
+  if (link) {
+    window.itemscan.openExternal(`https://www.bg-wiki.com/ffxi/${encodeURIComponent(link.dataset.wiki)}`);
+  }
 });
 
 searchEl.addEventListener('input', render);
