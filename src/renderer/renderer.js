@@ -181,39 +181,53 @@ function renderQuests(activeQuests) {
 const MISSION_LINES = [
   { key: 'nation', label: 'Nation Missions' },
   { key: 'zilart', label: 'Rise of the Zilart' },
-  { key: 'promathia', label: 'Chains of Promathia', raw: true },
+  { key: 'promathia', label: 'Chains of Promathia' },
   { key: 'aht_urhgan', label: 'Treasures of Aht Urhgan' },
   { key: 'assault', label: 'Assault' },
   { key: 'goddess', label: 'Wings of the Goddess' },
-  { key: 'adoulin', label: 'Seekers of Adoulin', raw: true },
-  { key: 'rhapsodies', label: 'Rhapsodies of Vana\'diel', raw: true },
+  { key: 'adoulin', label: 'Seekers of Adoulin' },
+  { key: 'rhapsodies', label: 'Rhapsodies of Vana\'diel' },
   { key: 'voracious', label: 'The Voracious Resurgence' }
 ];
 
-function missionValueText(entry, raw) {
+// Builds the value cell for one storyline. Resolved names show as text; a
+// numeric stage with no bundled/user name shows an editable input (for CoP /
+// Assault) keyed by storyline:value so it only applies to that exact stage.
+function missionValueCell(line, entry, labels) {
   if (!entry || entry.value === undefined || entry.value === null) {
     return '<span class="dash">—</span>';
   }
   const v = entry.value;
-  if (v === 65535) {
-    return '<span class="muted">none / complete</span>';
+  if (v === 65535) { return '<span class="muted">none / complete</span>'; }
+  if (v === 0) { return '<span class="muted">not started</span>'; }
+  const labelKey = `${line.key}:${v}`;
+  const name = labels[labelKey] || entry.name;
+  if (name) {
+    return escapeHtml(name);
   }
-  if (v === 0) {
-    return '<span class="muted">not started</span>';
-  }
-  if (entry.name) {
-    return escapeHtml(entry.name);
-  }
-  return `stage ${v}${raw ? ' <span class="muted">(raw)</span>' : ''}`;
+  return `<input class="mission-input" data-key="${labelKey}"
+    placeholder="stage ${v} — type the mission name" />`;
 }
 
-function renderMissions(missions) {
+async function renderMissions(missions, character) {
   const m = missions || {};
+  let labels = {};
+  try {
+    labels = await window.itemscan.getMissionLabels(character);
+  } catch (err) {
+    labels = {};
+  }
   missionGridEl.innerHTML = MISSION_LINES.map((line) =>
     `<div class="mission-row">
       <span class="mission-name">${line.label}</span>
-      <span class="mission-val">${missionValueText(m[line.key], line.raw)}</span>
+      <span class="mission-val">${missionValueCell(line, m[line.key], labels)}</span>
     </div>`).join('');
+
+  missionGridEl.querySelectorAll('.mission-input').forEach((inp) => {
+    inp.addEventListener('change', () => {
+      window.itemscan.setMissionLabel(character, inp.dataset.key, inp.value);
+    });
+  });
 }
 
 // Renders the active Records of Eminence objectives captured from packet 0x111.
@@ -366,7 +380,7 @@ window.itemscan.onInventory(async (data) => {
   renderProgress(data);
   renderStats();
   renderQuests(data.activeQuests);
-  renderMissions(data.missions);
+  renderMissions(data.missions, data.character);
   renderRoe(data.roe, data.character);
   render();
 });

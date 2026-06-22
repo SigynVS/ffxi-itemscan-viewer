@@ -11,6 +11,7 @@ const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.ico');
 const { enrichInventory } = require('./lib/enrich');
 const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
+const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
 const { getZone, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapdata');
 
 // Path to the inventory.json written by the Ashita itemscan addon.
@@ -125,6 +126,11 @@ ipcMain.handle('price:concurrency', (_event, n) => {
 ipcMain.handle('roe:labels', (_event, character) => getLabels(character));
 ipcMain.handle('roe:setLabel', (_event, { character, id, name }) =>
   setLabel(character, id, name));
+
+// Mission labels: per-character user names for unresolved mission stages.
+ipcMain.handle('mission:labels', (_event, character) => getMissionLabels(character));
+ipcMain.handle('mission:setLabel', (_event, { character, key, name }) =>
+  setMissionLabel(character, key, name));
 
 // Opens (creating if needed) the maps folder so the user can drop the pack in.
 ipcMain.handle('map:openFolder', () => {

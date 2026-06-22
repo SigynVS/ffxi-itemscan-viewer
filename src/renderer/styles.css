@@ -138,6 +138,9 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 .mission-row { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding: 2px 0; }
 .mission-name { color: var(--muted); }
 .mission-val { color: var(--accent); font-variant-numeric: tabular-nums; }
+.mission-input { width: 100%; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 2px 6px; font: inherit; }
+.mission-input:focus { background: var(--row); border-color: var(--accent); outline: none; }
+.mission-input::placeholder { color: #5a5a66; }
 
 .roe { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
 .roe summary { cursor: pointer; color: var(--text); font-weight: 600; }

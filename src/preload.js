@@ -21,5 +21,8 @@ contextBridge.exposeInMainWorld('itemscan', {
   getMapsDir: () => ipcRenderer.invoke('map:dir'),
   getRoeLabels: (character) => ipcRenderer.invoke('roe:labels', character),
   setRoeLabel: (character, id, name) =>
-    ipcRenderer.invoke('roe:setLabel', { character, id, name })
+    ipcRenderer.invoke('roe:setLabel', { character, id, name }),
+  getMissionLabels: (character) => ipcRenderer.invoke('mission:labels', character),
+  setMissionLabel: (character, key, name) =>
+    ipcRenderer.invoke('mission:setLabel', { character, key, name })
 });
