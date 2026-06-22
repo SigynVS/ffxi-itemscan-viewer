@@ -446,6 +446,17 @@ rowsEl.addEventListener('click', (e) => {
   }
 });
 
+// Tab switching: activate the clicked tab button and its matching panel.
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const name = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.tab-panel').forEach((p) => {
+      p.classList.toggle('active', p.dataset.panel === name);
+    });
+  });
+});
+
 searchEl.addEventListener('input', render);
 onlyVendorEl.addEventListener('change', render);
 onlyGobbieEl.addEventListener('change', render);

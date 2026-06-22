@@ -18,12 +18,14 @@ body {
   background: var(--bg);
   color: var(--text);
   font: 13px/1.4 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  flex: none;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   padding: 10px 14px;
@@ -32,11 +34,14 @@ header {
   gap: 8px;
 }
 
+/* Scroll region beneath the fixed header + tabs. */
+.content { flex: 1 1 auto; overflow-y: auto; }
+
 .title { display: flex; align-items: baseline; gap: 12px; }
 h1 { font-size: 16px; margin: 0; font-weight: 600; }
 .meta { color: var(--muted); font-size: 12px; }
 
-.controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; }
 #speed { background: var(--row); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 3px 4px; }
 .stats { display: flex; gap: 16px; flex-wrap: wrap; }
 .stats .stat { color: var(--muted); }
@@ -79,7 +84,8 @@ main { padding: 0 14px 24px; }
 table { width: 100%; border-collapse: collapse; }
 thead th {
   position: sticky;
-  top: 96px;
+  top: 0;
+  z-index: 1;
   background: var(--panel);
   text-align: left;
   color: var(--muted);
@@ -121,14 +127,14 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 
 .quests-panel { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
 .quests-panel summary { cursor: pointer; color: var(--text); font-weight: 600; }
-.quest-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 4px 16px; margin-top: 10px; }
+.quest-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 4px 16px; margin: 10px 14px 14px; }
 .quest-item { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding: 2px 0; }
 .quest-qname { color: var(--text); }
 .quest-area { color: var(--muted); font-size: 11px; align-self: center; }
 
 .missions { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
 .missions summary { cursor: pointer; color: var(--text); font-weight: 600; }
-.mission-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; margin-top: 10px; }
+.mission-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; margin: 10px 14px 14px; }
 .mission-row { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding: 2px 0; }
 .mission-name { color: var(--muted); }
 .mission-val { color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -136,7 +142,7 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 .roe { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
 .roe summary { cursor: pointer; color: var(--text); font-weight: 600; }
 .roe-count { color: var(--muted); font-weight: 400; font-size: 11px; }
-.roe-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; margin-top: 10px; }
+.roe-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; margin: 10px 14px 14px; }
 .roe-row { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding: 2px 0; }
 .roe-name { color: var(--text); }
 .roe-name-input { flex: 1; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--text); padding: 2px 4px; font: inherit; }
@@ -148,9 +154,41 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 .panel-note { color: var(--muted); font-weight: 400; font-size: 11px; }
 .muted { color: var(--muted); }
 
+/* Tabs */
+.tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-wrap: wrap;
+}
+.tab {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 9px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.panel-head {
+  margin: 12px 14px 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
 .map-panel { margin: 10px 14px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
 .map-panel summary { cursor: pointer; color: var(--text); font-weight: 600; }
-.map-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.map-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 14px 0; }
 #openMapsFolder { font-size: 12px; padding: 5px 10px; }
 .maps-dir-hint { color: var(--muted); font-size: 11px; word-break: break-all; }
 .map-view { margin-top: 10px; text-align: center; }

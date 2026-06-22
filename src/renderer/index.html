@@ -13,6 +13,24 @@
       <h1>FFXI Item Scan</h1>
       <span id="meta" class="meta">Waiting for inventory.json…</span>
     </div>
+    <div id="stats" class="stats"></div>
+  </header>
+
+  <div id="error" class="error hidden"></div>
+
+  <nav id="tabs" class="tabs">
+    <button class="tab active" data-tab="items">Items</button>
+    <button class="tab" data-tab="gobbie">Gobbiebag</button>
+    <button class="tab" data-tab="map">Map</button>
+    <button class="tab" data-tab="roe">Records of Eminence</button>
+    <button class="tab" data-tab="quests">Quests</button>
+    <button class="tab" data-tab="missions">Missions</button>
+  </nav>
+
+  <div class="content">
+
+  <!-- Items -->
+  <section class="tab-panel active" data-panel="items">
     <div class="controls">
       <input id="search" type="text" placeholder="Filter items…" />
       <label class="chk"><input id="onlyVendor" type="checkbox" /> Has value</label>
@@ -28,13 +46,33 @@
       </label>
       <button id="getPrices">Fetch AH prices</button>
     </div>
-    <div id="stats" class="stats"></div>
-  </header>
+    <main>
+      <table id="grid">
+        <thead>
+          <tr>
+            <th class="sortable" data-key="name">Item</th>
+            <th class="sortable num" data-key="count">Qty</th>
+            <th class="sortable" data-key="container_name">Where</th>
+            <th>What it is</th>
+            <th class="sortable num" data-key="vendorPrice">Vendor</th>
+            <th class="sortable num" data-key="ah">AH median</th>
+            <th class="sortable" data-key="gobbiebag">Gobbiebag</th>
+            <th class="sortable" data-key="quests">Quests / Missions</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </main>
+  </section>
 
-  <div id="error" class="error hidden"></div>
+  <!-- Gobbiebag -->
+  <section class="tab-panel" data-panel="gobbie">
+    <section id="progress" class="progress"></section>
+  </section>
 
-  <details id="mapPanel" class="map-panel" open>
-    <summary>Map <span id="mapZone" class="panel-note"></span></summary>
+  <!-- Map -->
+  <section class="tab-panel" data-panel="map">
+    <div class="panel-head">Map <span id="mapZone" class="panel-note"></span></div>
     <div class="map-toolbar">
       <button id="openMapsFolder" type="button" class="map-open-btn">Open maps folder</button>
       <span id="mapDirHint" class="maps-dir-hint"></span>
@@ -46,42 +84,27 @@
       </div>
       <div id="mapMsg" class="map-msg">Run <code>/itemscan map</code> in-game, then click <b>Open maps folder</b> to drop in the remapster PNG pack.</div>
     </div>
-  </details>
+  </section>
 
-  <section id="progress" class="progress"></section>
-
-  <details id="questPanel" class="quests-panel">
-    <summary>Active quests <span id="questCount" class="panel-note"></span></summary>
-    <div id="questList" class="quest-list"></div>
-  </details>
-
-  <details id="missionPanel" class="missions">
-    <summary>Mission progress <span class="panel-note">(stage numbers; names are a work in progress)</span></summary>
-    <div id="missionGrid" class="mission-grid"></div>
-  </details>
-
-  <details id="roePanel" class="roe">
-    <summary>Records of Eminence <span id="roeCount" class="roe-count"></span></summary>
+  <!-- Records of Eminence -->
+  <section class="tab-panel" data-panel="roe">
+    <div class="panel-head">Records of Eminence <span id="roeCount" class="roe-count"></span></div>
     <div id="roeList" class="roe-list"></div>
-  </details>
+  </section>
 
-  <main>
-    <table id="grid">
-      <thead>
-        <tr>
-          <th class="sortable" data-key="name">Item</th>
-          <th class="sortable num" data-key="count">Qty</th>
-          <th class="sortable" data-key="container_name">Where</th>
-          <th>What it is</th>
-          <th class="sortable num" data-key="vendorPrice">Vendor</th>
-          <th class="sortable num" data-key="ah">AH median</th>
-          <th class="sortable" data-key="gobbiebag">Gobbiebag</th>
-          <th class="sortable" data-key="quests">Quests / Missions</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </main>
+  <!-- Quests -->
+  <section class="tab-panel" data-panel="quests">
+    <div class="panel-head">Active quests <span id="questCount" class="panel-note"></span></div>
+    <div id="questList" class="quest-list"></div>
+  </section>
+
+  <!-- Missions -->
+  <section class="tab-panel" data-panel="missions">
+    <div class="panel-head">Mission progress <span class="panel-note">(stage numbers; names are a work in progress)</span></div>
+    <div id="missionGrid" class="mission-grid"></div>
+  </section>
+
+  </div><!-- /.content -->
 
   <script src="renderer.js"></script>
 </body>
