@@ -185,9 +185,13 @@ const MISSION_LINES = [
   { key: 'aht_urhgan', label: 'Treasures of Aht Urhgan' },
   { key: 'assault', label: 'Assault' },
   { key: 'goddess', label: 'Wings of the Goddess' },
+  { key: 'campaign', label: 'Campaign Operations' },
   { key: 'adoulin', label: 'Seekers of Adoulin' },
   { key: 'rhapsodies', label: 'Rhapsodies of Vana\'diel' },
-  { key: 'voracious', label: 'The Voracious Resurgence' }
+  { key: 'voracious', label: 'The Voracious Resurgence' },
+  { key: 'crystalline', label: 'A Crystalline Prophecy' },
+  { key: 'moogle', label: 'A Moogle Kupo d\'Etat' },
+  { key: 'shantotto', label: 'A Shantotto Ascension' }
 ];
 
 // Builds the value cell for one storyline. Resolved names show as text; a

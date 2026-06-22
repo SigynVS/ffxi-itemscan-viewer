@@ -116,12 +116,23 @@ local function parse_missions(data)
         m.nation = u32(data, 0x09);
         m.zilart = u32(data, 0x0D);
         m.promathia = u32(data, 0x11);
+        -- Add-on scenarios are packed as 4-bit nibbles at 0x18-0x19 (0-based).
+        local acp_mkd = data:byte(0x19); -- 1-based (0x18 + 1)
+        local asa_b   = data:byte(0x1A); -- 1-based (0x19 + 1)
+        if (acp_mkd ~= nil) then
+            m.crystalline = acp_mkd % 16;            -- A Crystalline Prophecy (low nibble)
+            m.moogle      = math.floor(acp_mkd / 16); -- A Moogle Kupo d'Etat (high nibble)
+        end
+        if (asa_b ~= nil) then
+            m.shantotto = asa_b % 16;                -- A Shantotto Ascension (low nibble)
+        end
         m.adoulin = u32(data, 0x1D);
         m.rhapsodies = u32(data, 0x21);
     elseif (mtype == 0x0080) then
         m.assault = u32(data, 0x15);
         m.aht_urhgan = u32(data, 0x19);
         m.goddess = u32(data, 0x1D);
+        m.campaign = u32(data, 0x21);
     elseif (mtype == 0xFFFE) then
         m.voracious = u32(data, 0x05);
     end
@@ -402,7 +413,8 @@ ashita.events.register('command', 'command_cb', function (e)
     if (#args >= 2 and args[2]:lower() == 'missions') then
         local m = itemscan.missions;
         local order = T{ 'nation', 'zilart', 'promathia', 'aht_urhgan', 'assault',
-                         'goddess', 'adoulin', 'rhapsodies', 'voracious' };
+                         'goddess', 'campaign', 'adoulin', 'rhapsodies', 'voracious',
+                         'crystalline', 'moogle', 'shantotto' };
         order:each(function (k)
             print(('[itemscan] mission %s = %s'):fmt(k, tostring(m[k])));
         end);
