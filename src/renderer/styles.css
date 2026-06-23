@@ -159,6 +159,16 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 .panel-note { color: var(--muted); font-weight: 400; font-size: 11px; }
 .muted { color: var(--muted); }
 
+/* Config tab */
+.cfg-cmds, .cfg-settings { margin: 10px 14px 18px; display: flex; flex-direction: column; gap: 6px; }
+.cfg-cmd { display: flex; gap: 12px; align-items: baseline; }
+.cfg-cmd code { color: var(--accent); background: var(--row); padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.cfg-cmd span { color: var(--muted); }
+.cfg-row { display: flex; align-items: center; gap: 12px; }
+.cfg-row > span:first-child { color: var(--muted); min-width: 130px; }
+.cfg-row select { background: var(--row); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 3px 4px; }
+.cfg-path { color: var(--text); background: var(--row); padding: 2px 6px; border-radius: 4px; word-break: break-all; font-size: 12px; }
+
 /* Tabs */
 .tabs {
   flex: none;

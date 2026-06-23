@@ -142,6 +142,13 @@ ipcMain.handle('map:openFolder', () => {
 });
 ipcMain.handle('map:dir', () => MAPS_DIR);
 
+// Config tab: paths for display.
+ipcMain.handle('config:info', () => ({
+  inventoryPath: INVENTORY_PATH,
+  mapsDir: MAPS_DIR,
+  userData: app.getPath('userData')
+}));
+
 // Opens a URL in the user's default browser. Restricted to the two FFXI
 // reference sites so the renderer can't be tricked into opening arbitrary URLs.
 ipcMain.handle('open:external', (_event, url) => {

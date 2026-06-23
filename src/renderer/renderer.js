@@ -494,11 +494,29 @@ onlyVendorEl.addEventListener('change', render);
 onlyGobbieEl.addEventListener('change', render);
 onlyQuestEl.addEventListener('change', render);
 getPricesEl.addEventListener('click', fetchAllPrices);
-speedEl.addEventListener('change', () => {
-  window.itemscan.setConcurrency(parseInt(speedEl.value, 10));
+// Two speed selectors (Items toolbar + Config tab) stay in sync.
+const speedCfgEl = document.getElementById('speedCfg');
+function applySpeed(value) {
+  speedEl.value = String(value);
+  speedCfgEl.value = String(value);
+  window.itemscan.setConcurrency(parseInt(value, 10));
+}
+speedEl.addEventListener('change', () => applySpeed(speedEl.value));
+speedCfgEl.addEventListener('change', () => applySpeed(speedCfgEl.value));
+applySpeed(speedEl.value); // apply the default once on load
+
+// Config tab: open-maps button + populate the path fields.
+document.getElementById('openMapsCfg').addEventListener('click', () => {
+  window.itemscan.openMapsFolder();
 });
-// Apply the default speed once on load.
-window.itemscan.setConcurrency(parseInt(speedEl.value, 10));
+(async () => {
+  try {
+    const info = await window.itemscan.getConfigInfo();
+    document.getElementById('cfgMapsDir').textContent = info.mapsDir;
+    document.getElementById('cfgInvPath').textContent = info.inventoryPath;
+    document.getElementById('cfgUserData').textContent = info.userData;
+  } catch (err) { /* ignore */ }
+})();
 
 async function initMapsDirHint() {
   try {

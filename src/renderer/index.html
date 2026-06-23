@@ -25,6 +25,7 @@
     <button class="tab" data-tab="roe">Records of Eminence</button>
     <button class="tab" data-tab="quests">Quests</button>
     <button class="tab" data-tab="missions">Missions</button>
+    <button class="tab" data-tab="config">Config</button>
   </nav>
 
   <div class="content">
@@ -102,6 +103,38 @@
   <section class="tab-panel" data-panel="missions">
     <div class="panel-head">Mission progress <span class="panel-note">(CoP &amp; Assault show raw stage — no verified name table)</span></div>
     <div id="missionGrid" class="mission-grid"></div>
+  </section>
+
+  <!-- Config -->
+  <section class="tab-panel" data-panel="config">
+    <div class="panel-head">In-game commands <span class="panel-note">(type these in FFXI chat)</span></div>
+    <div class="cfg-cmds">
+      <div class="cfg-cmd"><code>/itemscan</code> <span>Scan inventory now &rarr; writes inventory.json</span></div>
+      <div class="cfg-cmd"><code>/itemscan auto</code> <span>Toggle auto-rescan when inventory changes</span></div>
+      <div class="cfg-cmd"><code>/itemscan map</code> <span>Toggle live position tracking for the Map tab</span></div>
+      <div class="cfg-cmd"><code>/itemscan missions</code> <span>Print mission stage values to chat</span></div>
+      <div class="cfg-cmd"><code>/itemscan roe</code> <span>Print active Records of Eminence objectives</span></div>
+      <div class="cfg-cmd"><code>/itemscan quests</code> <span>Print active quest counts per area</span></div>
+      <div class="cfg-cmd"><code>/addon reload itemscan</code> <span>Reload the addon after an update</span></div>
+    </div>
+
+    <div class="panel-head">App settings</div>
+    <div class="cfg-settings">
+      <label class="cfg-row"><span>AH fetch speed</span>
+        <select id="speedCfg" title="Parallel FFXIAH price fetches.">
+          <option value="1">1×</option>
+          <option value="3" selected>3×</option>
+          <option value="5">5×</option>
+          <option value="8">8×</option>
+        </select>
+      </label>
+      <div class="cfg-row"><span>Map images</span>
+        <button id="openMapsCfg" type="button">Open maps folder</button>
+      </div>
+      <div class="cfg-row"><span>Maps folder</span><code id="cfgMapsDir" class="cfg-path"></code></div>
+      <div class="cfg-row"><span>Inventory file</span><code id="cfgInvPath" class="cfg-path"></code></div>
+      <div class="cfg-row"><span>App data folder</span><code id="cfgUserData" class="cfg-path"></code></div>
+    </div>
   </section>
 
   </div><!-- /.content -->

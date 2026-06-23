@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('itemscan', {
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
   openMapsFolder: () => ipcRenderer.invoke('map:openFolder'),
   getMapsDir: () => ipcRenderer.invoke('map:dir'),
+  getConfigInfo: () => ipcRenderer.invoke('config:info'),
   getRoeLabels: (character) => ipcRenderer.invoke('roe:labels', character),
   setRoeLabel: (character, id, name) =>
     ipcRenderer.invoke('roe:setLabel', { character, id, name }),
