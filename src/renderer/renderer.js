@@ -466,15 +466,16 @@ rowsEl.addEventListener('click', (e) => {
   }
 });
 
-// Tab switching: activate the clicked tab button and its matching panel.
+// Tab switching: activate a tab button and its matching panel by name.
+function activateTab(name) {
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.dataset.panel === name));
+  if (name === 'config') {
+    refreshAddonConfig(); // reflect any in-game /itemscan toggles
+  }
+}
 document.querySelectorAll('.tab').forEach((tab) => {
-  tab.addEventListener('click', () => {
-    const name = tab.dataset.tab;
-    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === tab));
-    document.querySelectorAll('.tab-panel').forEach((p) => {
-      p.classList.toggle('active', p.dataset.panel === name);
-    });
-  });
+  tab.addEventListener('click', () => activateTab(tab.dataset.tab));
 });
 
 // Mission + quest names link to their BG-Wiki page.
@@ -501,9 +502,33 @@ function applySpeed(value) {
   speedCfgEl.value = String(value);
   window.itemscan.setConcurrency(parseInt(value, 10));
 }
-speedEl.addEventListener('change', () => applySpeed(speedEl.value));
-speedCfgEl.addEventListener('change', () => applySpeed(speedCfgEl.value));
-applySpeed(speedEl.value); // apply the default once on load
+speedEl.addEventListener('change', () => { applySpeed(speedEl.value); localStorage.setItem('speed', speedEl.value); });
+speedCfgEl.addEventListener('change', () => { applySpeed(speedCfgEl.value); localStorage.setItem('speed', speedCfgEl.value); });
+applySpeed(localStorage.getItem('speed') || speedEl.value); // restore saved speed
+
+// In-game addon toggles (auto-scan, map tracking) write itemscan_config.json.
+const cfgAutoEl = document.getElementById('cfgAuto');
+const cfgMapEl = document.getElementById('cfgMap');
+async function refreshAddonConfig() {
+  try {
+    const cfg = await window.itemscan.getAddonConfig();
+    cfgAutoEl.checked = Boolean(cfg.auto);
+    cfgMapEl.checked = Boolean(cfg.maptrack);
+  } catch (err) { /* ignore */ }
+}
+function writeAddonConfig() {
+  window.itemscan.setAddonConfig({ auto: cfgAutoEl.checked, maptrack: cfgMapEl.checked });
+}
+cfgAutoEl.addEventListener('change', writeAddonConfig);
+cfgMapEl.addEventListener('change', writeAddonConfig);
+refreshAddonConfig();
+
+// Default tab: persisted in localStorage, applied on load.
+const defaultTabEl = document.getElementById('defaultTabCfg');
+const savedTab = localStorage.getItem('defaultTab') || 'items';
+defaultTabEl.value = savedTab;
+defaultTabEl.addEventListener('change', () => localStorage.setItem('defaultTab', defaultTabEl.value));
+if (savedTab !== 'items') { activateTab(savedTab); } // apply saved default on launch
 
 // Config tab: open-maps button + populate the path fields.
 document.getElementById('openMapsCfg').addEventListener('click', () => {

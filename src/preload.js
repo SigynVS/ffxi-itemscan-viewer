@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('itemscan', {
   openMapsFolder: () => ipcRenderer.invoke('map:openFolder'),
   getMapsDir: () => ipcRenderer.invoke('map:dir'),
   getConfigInfo: () => ipcRenderer.invoke('config:info'),
+  getAddonConfig: () => ipcRenderer.invoke('addon:getConfig'),
+  setAddonConfig: (cfg) => ipcRenderer.invoke('addon:setConfig', cfg),
   getRoeLabels: (character) => ipcRenderer.invoke('roe:labels', character),
   setRoeLabel: (character, id, name) =>
     ipcRenderer.invoke('roe:setLabel', { character, id, name }),

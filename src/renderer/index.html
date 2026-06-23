@@ -107,15 +107,14 @@
 
   <!-- Config -->
   <section class="tab-panel" data-panel="config">
-    <div class="panel-head">In-game commands <span class="panel-note">(type these in FFXI chat)</span></div>
-    <div class="cfg-cmds">
-      <div class="cfg-cmd"><code>/itemscan</code> <span>Scan inventory now &rarr; writes inventory.json</span></div>
-      <div class="cfg-cmd"><code>/itemscan auto</code> <span>Toggle auto-rescan when inventory changes</span></div>
-      <div class="cfg-cmd"><code>/itemscan map</code> <span>Toggle live position tracking for the Map tab</span></div>
-      <div class="cfg-cmd"><code>/itemscan missions</code> <span>Print mission stage values to chat</span></div>
-      <div class="cfg-cmd"><code>/itemscan roe</code> <span>Print active Records of Eminence objectives</span></div>
-      <div class="cfg-cmd"><code>/itemscan quests</code> <span>Print active quest counts per area</span></div>
-      <div class="cfg-cmd"><code>/addon reload itemscan</code> <span>Reload the addon after an update</span></div>
+    <div class="panel-head">In-game addon <span class="panel-note">(controls the itemscan addon directly)</span></div>
+    <div class="cfg-settings">
+      <label class="cfg-row"><span>Auto-scan</span>
+        <input id="cfgAuto" type="checkbox" /> <span class="panel-note">re-export inventory when it changes</span>
+      </label>
+      <label class="cfg-row"><span>Map tracking</span>
+        <input id="cfgMap" type="checkbox" /> <span class="panel-note">stream position for the live map dot</span>
+      </label>
     </div>
 
     <div class="panel-head">App settings</div>
@@ -128,12 +127,38 @@
           <option value="8">8×</option>
         </select>
       </label>
+      <label class="cfg-row"><span>Default tab</span>
+        <select id="defaultTabCfg">
+          <option value="items">Items</option>
+          <option value="gobbie">Gobbiebag</option>
+          <option value="map">Map</option>
+          <option value="roe">Records of Eminence</option>
+          <option value="quests">Quests</option>
+          <option value="missions">Missions</option>
+        </select>
+      </label>
       <div class="cfg-row"><span>Map images</span>
         <button id="openMapsCfg" type="button">Open maps folder</button>
       </div>
       <div class="cfg-row"><span>Maps folder</span><code id="cfgMapsDir" class="cfg-path"></code></div>
       <div class="cfg-row"><span>Inventory file</span><code id="cfgInvPath" class="cfg-path"></code></div>
       <div class="cfg-row"><span>App data folder</span><code id="cfgUserData" class="cfg-path"></code></div>
+    </div>
+
+    <div class="panel-head">In-game commands <span class="panel-note">(type these in FFXI chat)</span></div>
+    <div class="cfg-cmds">
+      <div class="cfg-cmd"><code>/itemscan</code> <span>Scan inventory now &rarr; writes inventory.json</span></div>
+      <div class="cfg-cmd"><code>/itemscan auto</code> <span>Toggle auto-rescan when inventory changes</span></div>
+      <div class="cfg-cmd"><code>/itemscan map</code> <span>Toggle live position tracking for the Map tab</span></div>
+      <div class="cfg-cmd"><code>/itemscan missions</code> <span>Print mission stage values to chat</span></div>
+      <div class="cfg-cmd"><code>/itemscan roe</code> <span>Print active Records of Eminence objectives</span></div>
+      <div class="cfg-cmd"><code>/itemscan quests</code> <span>Print active quest counts per area</span></div>
+      <div class="cfg-cmd"><code>/addon reload itemscan</code> <span>Reload the addon after an update</span></div>
+    </div>
+
+    <div class="panel-head">Not controllable from here</div>
+    <div class="cfg-settings">
+      <div class="cfg-row panel-note">FFXI's own options (graphics/sound/controls) and Ashita's config live inside the game/Ashita process — an external app can't change them. Use the in-game Config menu or Ashita's <code>/config</code> addon for those.</div>
     </div>
   </section>
 

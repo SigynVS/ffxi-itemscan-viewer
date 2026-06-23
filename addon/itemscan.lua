@@ -53,7 +53,44 @@ local itemscan = T{
     quest_raw = nil, -- raw bytes of the last 0x0070 packet, for offset verification
     maptrack = false,-- when true, write position.json each ~15 frames for the map
     frame = 0,       -- frame counter for throttling position writes
+    last_config = {},-- last-seen values from itemscan_config.json (app-driven)
 };
+
+-- Settings the external app can drive, persisted in itemscan_config.json beside
+-- this addon. The app writes the file; the addon reads it on load and polls it,
+-- applying a value only when it changed (so in-game /commands aren't clobbered).
+local function config_path()
+    return ('%s\\itemscan_config.json'):fmt(addon.path);
+end
+
+local function write_config()
+    local cfg = { auto = itemscan.auto, maptrack = itemscan.maptrack };
+    itemscan.last_config = { auto = itemscan.auto, maptrack = itemscan.maptrack };
+    local file = io.open(config_path(), 'w');
+    if (file ~= nil) then
+        file:write(json.encode(cfg));
+        file:close();
+    end
+end
+
+local function poll_config()
+    local file = io.open(config_path(), 'r');
+    if (file == nil) then return; end
+    local txt = file:read('*a');
+    file:close();
+    local ok, cfg = pcall(json.decode, txt);
+    if (not ok or cfg == nil) then return; end
+    if (cfg.auto ~= nil and cfg.auto ~= itemscan.last_config.auto) then
+        itemscan.auto = cfg.auto;
+        itemscan.last_config.auto = cfg.auto;
+        print(('[itemscan] auto-scan %s (from app).'):fmt(cfg.auto and 'ON' or 'OFF'));
+    end
+    if (cfg.maptrack ~= nil and cfg.maptrack ~= itemscan.last_config.maptrack) then
+        itemscan.maptrack = cfg.maptrack;
+        itemscan.last_config.maptrack = cfg.maptrack;
+        print(('[itemscan] map tracking %s (from app).'):fmt(cfg.maptrack and 'ON' or 'OFF'));
+    end
+end
 
 -- Quest-log blocks within packet 0x056: Type selector -> { area, state }.
 -- Source: Ivaar's Windower QuestLog addon quest_logs table.
@@ -346,6 +383,7 @@ ashita.events.register('command', 'command_cb', function (e)
 
     if (#args >= 2 and args[2]:lower() == 'auto') then
         itemscan.auto = not itemscan.auto;
+        write_config();
         print(('[itemscan] Auto-scan %s.'):fmt(itemscan.auto and 'enabled' or 'disabled'));
         return;
     end
@@ -373,6 +411,7 @@ ashita.events.register('command', 'command_cb', function (e)
 
     if (#args >= 2 and args[2]:lower() == 'map') then
         itemscan.maptrack = not itemscan.maptrack;
+        write_config();
         print(('[itemscan] Map position tracking %s.'):fmt(itemscan.maptrack and 'ON' or 'OFF'));
         return;
     end
@@ -466,15 +505,19 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
     end
 end);
 
--- Throttled position writer for the map display (~4x/sec at 60fps). Only active
--- when map tracking is toggled on via /itemscan map.
+-- Read app-driven settings on load.
+ashita.events.register('load', 'load_cb', function ()
+    poll_config();
+end);
+
+-- Render loop: poll the app-driven config (~every 2s) and, when map tracking is
+-- on, write position.json (~4x/sec at 60fps).
 ashita.events.register('d3d_present', 'present_cb', function ()
-    if (not itemscan.maptrack) then
-        return;
-    end
     itemscan.frame = itemscan.frame + 1;
-    if (itemscan.frame >= 15) then
-        itemscan.frame = 0;
+    if (itemscan.frame % 120 == 0) then
+        poll_config();
+    end
+    if (itemscan.maptrack and (itemscan.frame % 15 == 0)) then
         write_position();
     end
 end);

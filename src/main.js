@@ -21,6 +21,8 @@ const INVENTORY_PATH = process.env.ITEMSCAN_PATH
 
 // position.json is written by the addon beside inventory.json.
 const POSITION_PATH = path.join(path.dirname(INVENTORY_PATH), 'position.json');
+// itemscan_config.json drives the addon's auto-scan / map-tracking from the app.
+const ADDON_CONFIG_PATH = path.join(path.dirname(INVENTORY_PATH), 'itemscan_config.json');
 
 let mainWindow = null;
 let watchDebounce = null;
@@ -141,6 +143,23 @@ ipcMain.handle('map:openFolder', () => {
   return MAPS_DIR;
 });
 ipcMain.handle('map:dir', () => MAPS_DIR);
+
+// Addon control: read/write itemscan_config.json (auto-scan, map tracking).
+ipcMain.handle('addon:getConfig', () => {
+  try {
+    return JSON.parse(fs.readFileSync(ADDON_CONFIG_PATH, 'utf8'));
+  } catch (err) {
+    return { auto: false, maptrack: false };
+  }
+});
+ipcMain.handle('addon:setConfig', (_event, cfg) => {
+  try {
+    fs.writeFileSync(ADDON_CONFIG_PATH, JSON.stringify(cfg));
+    return true;
+  } catch (err) {
+    return false;
+  }
+});
 
 // Config tab: paths for display.
 ipcMain.handle('config:info', () => ({
