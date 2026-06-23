@@ -16,10 +16,43 @@ function load(name) {
 
 // Per-zone calibration: { "<zoneId>": { mapName, scale, offsetX, offsetY } }
 const zoneOffset = load('zoneOffset.json');
+// Multi-floor zones: { "<zoneId>": { mapName, maps: [{ mapId, offsetX, offsetY,
+// scale, ranges: [{x1,x2,y1,y2,z1,z2}] }] } }. The active sub-map is chosen by
+// which range contains the player's position; the file is <mapName>_<mapId>.png.
+const zonesWithMaps = load('zonesWithMaps.json');
 
 // User-supplied map images live here (the remapster wiki pack, unzipped).
 // Override with ITEMSCAN_MAPS. Not bundled (too large + licensing).
 const MAPS_DIR = process.env.ITEMSCAN_MAPS || path.join(app.getPath('userData'), 'maps');
+
+function inRange(pos, r) {
+  return pos.x >= r.x1 && pos.x <= r.x2
+    && pos.y >= r.y1 && pos.y <= r.y2
+    && pos.z >= r.z1 && pos.z <= r.z2;
+}
+
+// Resolves the active map (calibration + image filename) for a zone at a given
+// position. Multi-floor zones pick the sub-map by coordinate range (falling back
+// to the first if none match); flat zones use the single map. null = no map data.
+function getZoneMap(zoneId, pos) {
+  const multi = zonesWithMaps[String(zoneId)];
+  if (multi && Array.isArray(multi.maps) && multi.maps.length) {
+    let chosen = null;
+    for (const m of multi.maps) {
+      if ((m.ranges || []).some((r) => inRange(pos, r))) { chosen = m; break; }
+    }
+    if (!chosen) { chosen = multi.maps[0]; }
+    return {
+      file: `${multi.mapName}_${chosen.mapId}`,
+      offsetX: chosen.offsetX, offsetY: chosen.offsetY, scale: chosen.scale
+    };
+  }
+  const flat = zoneOffset[String(zoneId)];
+  if (flat) {
+    return { file: flat.mapName, offsetX: flat.offsetX, offsetY: flat.offsetY, scale: flat.scale };
+  }
+  return null;
+}
 
 function getZone(zoneId) {
   return zoneOffset[String(zoneId)] || null;
@@ -46,4 +79,4 @@ function mapImageDataUrl(mapName) {
   }
 }
 
-module.exports = { getZone, toPercent, mapImageDataUrl, MAPS_DIR };
+module.exports = { getZone, getZoneMap, toPercent, mapImageDataUrl, MAPS_DIR };

@@ -12,7 +12,7 @@ const { enrichInventory } = require('./lib/enrich');
 const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
 const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
-const { getZone, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapdata');
+const { getZoneMap, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapdata');
 
 // Persisted app settings (the configurable Ashita addon folder, etc.).
 function settingsPath() { return path.join(app.getPath('userData'), 'app_settings.json'); }
@@ -94,14 +94,14 @@ function pushPosition() {
   }
   try {
     const pos = JSON.parse(fs.readFileSync(POSITION_PATH, 'utf8'));
-    const cal = getZone(pos.zone);
-    const payload = { zone: pos.zone, hasCalibration: Boolean(cal), mapsDir: MAPS_DIR };
-    if (cal) {
-      payload.mapName = cal.mapName;
-      payload.dot = toPercent(cal, pos.x, pos.y);
-      if (cal.mapName !== lastMapName || lastImageMissing) {
-        lastMapName = cal.mapName;
-        const img = mapImageDataUrl(cal.mapName);
+    const m = getZoneMap(pos.zone, pos);
+    const payload = { zone: pos.zone, hasCalibration: Boolean(m), mapsDir: MAPS_DIR };
+    if (m) {
+      payload.mapName = m.file;
+      payload.dot = toPercent(m, pos.x, pos.y);
+      if (m.file !== lastMapName || lastImageMissing) {
+        lastMapName = m.file;
+        const img = mapImageDataUrl(m.file);
         lastImageMissing = (img === null); // retry next tick until the file appears
         payload.imageChanged = true;
         payload.image = img; // null if the pack lacks it
