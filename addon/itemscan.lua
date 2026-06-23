@@ -53,6 +53,7 @@ local itemscan = T{
     quest_raw = nil, -- raw bytes of the last 0x0070 packet, for offset verification
     maptrack = false,-- when true, write position.json each ~15 frames for the map
     frame = 0,       -- frame counter for throttling position writes
+    scan_at = 0,     -- frame to run a debounced auto-scan (0 = none pending)
     last_config = {},-- last-seen values from itemscan_config.json (app-driven)
 };
 
@@ -303,7 +304,7 @@ end
 --[[
 * Performs a scan and writes inventory.json beside this addon.
 --]]
-local function do_scan()
+local function do_scan(silent)
     local party = AshitaCore:GetMemoryManager():GetParty();
     local charname = (party ~= nil and party:GetMemberName(0)) or 'Unknown';
 
@@ -343,7 +344,9 @@ local function do_scan()
     file:write(json.encode(payload));
     file:close();
 
-    print(('[itemscan] Wrote %d items to inventory.json'):fmt(#payload.items));
+    if (not silent) then
+        print(('[itemscan] Wrote %d items to inventory.json'):fmt(#payload.items));
+    end
 end
 
 --[[
@@ -486,22 +489,23 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
             end
         end
         if (itemscan.auto) then
-            do_scan();
+            itemscan.scan_at = itemscan.frame + 60; -- debounce ~1s
         end
         return;
     end
     if (e.id == 0x111) then
         itemscan.roe_active = parse_roe(e.data);
-        local n = 0;
-        for _ in pairs(itemscan.roe_active) do n = n + 1; end
-        print(('[itemscan] RoE packet 0x111 received (size %d): captured %d objectives.'):fmt(e.size, n));
+        if (not itemscan.auto) then
+            print(('[itemscan] RoE packet 0x111 received (size %d): captured %d objectives.'):fmt(
+                e.size, #itemscan.roe_active));
+        end
         if (itemscan.auto) then
-            do_scan();
+            itemscan.scan_at = itemscan.frame + 60; -- debounce ~1s
         end
         return;
     end
     if (itemscan.auto and e.id == 0x001D) then
-        do_scan();
+        itemscan.scan_at = itemscan.frame + 60; -- debounce ~1s
     end
 end);
 
@@ -516,6 +520,12 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     itemscan.frame = itemscan.frame + 1;
     if (itemscan.frame % 120 == 0) then
         poll_config();
+    end
+    -- Run a debounced auto-scan once the burst of triggers has settled (silent,
+    -- so it doesn't spam chat).
+    if (itemscan.scan_at > 0 and itemscan.frame >= itemscan.scan_at) then
+        itemscan.scan_at = 0;
+        do_scan(true);
     end
     if (itemscan.maptrack and (itemscan.frame % 15 == 0)) then
         write_position();
