@@ -210,11 +210,6 @@ ipcMain.handle('config:info', () => ({
 }));
 
 // Configurable Ashita addon folder.
-ipcMain.handle('config:getAddonDir', () => addonDir);
-ipcMain.handle('config:setAddonDir', (_event, dir) => {
-  if (dir) { setAddonDir(dir); }
-  return addonDir;
-});
 ipcMain.handle('config:browseAddonDir', async () => {
   const res = await dialog.showOpenDialog(mainWindow, {
     title: 'Select your Ashita itemscan addon folder',
