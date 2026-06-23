@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -14,15 +14,36 @@ const { getLabels, setLabel } = require('./lib/roelabels');
 const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
 const { getZone, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapdata');
 
-// Path to the inventory.json written by the Ashita itemscan addon.
-// Override with the ITEMSCAN_PATH environment variable if your install differs.
-const INVENTORY_PATH = process.env.ITEMSCAN_PATH
-  || 'C:\\Ashita4\\addons\\itemscan\\inventory.json';
+// Persisted app settings (the configurable Ashita addon folder, etc.).
+function settingsPath() { return path.join(app.getPath('userData'), 'app_settings.json'); }
+function loadSettings() {
+  try { return JSON.parse(fs.readFileSync(settingsPath(), 'utf8')); } catch (err) { return {}; }
+}
+function saveSettings(s) {
+  try { fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2)); } catch (err) { /* ignore */ }
+}
 
-// position.json is written by the addon beside inventory.json.
-const POSITION_PATH = path.join(path.dirname(INVENTORY_PATH), 'position.json');
-// itemscan_config.json drives the addon's auto-scan / map-tracking from the app.
-const ADDON_CONFIG_PATH = path.join(path.dirname(INVENTORY_PATH), 'itemscan_config.json');
+// The folder where the itemscan addon writes inventory.json / position.json /
+// itemscan_config.json. Configurable so the app works wherever Ashita lives.
+function defaultAddonDir() {
+  if (process.env.ITEMSCAN_PATH) { return path.dirname(process.env.ITEMSCAN_PATH); }
+  const candidates = [
+    'C:\\Ashita4\\addons\\itemscan',
+    'C:\\Ashita\\addons\\itemscan',
+    'D:\\Ashita4\\addons\\itemscan'
+  ];
+  for (const c of candidates) { if (fs.existsSync(c)) { return c; } }
+  return candidates[0];
+}
+
+let addonDir = loadSettings().addonDir || defaultAddonDir();
+let INVENTORY_PATH, POSITION_PATH, ADDON_CONFIG_PATH;
+function updatePaths() {
+  INVENTORY_PATH = path.join(addonDir, 'inventory.json');
+  POSITION_PATH = path.join(addonDir, 'position.json');
+  ADDON_CONFIG_PATH = path.join(addonDir, 'itemscan_config.json');
+}
+updatePaths();
 
 let mainWindow = null;
 let watchDebounce = null;
@@ -96,11 +117,16 @@ function pushPosition() {
 
 // Watches the addon's output dir for inventory.json. position.json is polled
 // instead (below), since fs.watch is unreliable for a file rewritten 4x/sec.
+let dirWatcher = null;
 function watchInventory() {
+  if (dirWatcher) {
+    try { dirWatcher.close(); } catch (err) { /* ignore */ }
+    dirWatcher = null;
+  }
   const dir = path.dirname(INVENTORY_PATH);
   const invBase = path.basename(INVENTORY_PATH);
   try {
-    fs.watch(dir, (eventType, filename) => {
+    dirWatcher = fs.watch(dir, (eventType, filename) => {
       if (filename === invBase) {
         clearTimeout(watchDebounce);
         watchDebounce = setTimeout(pushInventory, 250);
@@ -109,6 +135,20 @@ function watchInventory() {
   } catch (err) {
     // Directory may not exist yet; the renderer will show the error state.
   }
+}
+
+// Re-points the app at a new Ashita addon folder, persists it, and re-watches.
+function setAddonDir(dir) {
+  addonDir = dir;
+  updatePaths();
+  const s = loadSettings();
+  s.addonDir = dir;
+  saveSettings(s);
+  lastMapName = null;
+  lastImageMissing = false;
+  watchInventory();
+  pushInventory();
+  pushPosition();
 }
 
 // Renderer asks for a live FFXIAH price for one item id.
@@ -164,9 +204,27 @@ ipcMain.handle('addon:setConfig', (_event, cfg) => {
 // Config tab: paths for display.
 ipcMain.handle('config:info', () => ({
   inventoryPath: INVENTORY_PATH,
+  addonDir: addonDir,
   mapsDir: MAPS_DIR,
   userData: app.getPath('userData')
 }));
+
+// Configurable Ashita addon folder.
+ipcMain.handle('config:getAddonDir', () => addonDir);
+ipcMain.handle('config:setAddonDir', (_event, dir) => {
+  if (dir) { setAddonDir(dir); }
+  return addonDir;
+});
+ipcMain.handle('config:browseAddonDir', async () => {
+  const res = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select your Ashita itemscan addon folder',
+    defaultPath: addonDir,
+    properties: ['openDirectory']
+  });
+  if (res.canceled || !res.filePaths.length) { return addonDir; }
+  setAddonDir(res.filePaths[0]);
+  return addonDir;
+});
 
 // Opens a URL in the user's default browser. Restricted to the two FFXI
 // reference sites so the renderer can't be tricked into opening arbitrary URLs.

@@ -426,7 +426,8 @@ window.itemscan.onPosition((p) => {
 
 window.itemscan.onError((data) => {
   errorEl.textContent = `Could not read inventory:\n${data.path}\n${data.message}\n\n`
-    + 'Run /itemscan in-game to create it.';
+    + 'Run /itemscan in-game to create it, or set your Ashita itemscan folder '
+    + 'in the Config tab (Browse…).';
   errorEl.classList.remove('hidden');
 });
 
@@ -534,14 +535,24 @@ if (savedTab !== 'items') { activateTab(savedTab); } // apply saved default on l
 document.getElementById('openMapsCfg').addEventListener('click', () => {
   window.itemscan.openMapsFolder();
 });
-(async () => {
+async function refreshConfigInfo() {
   try {
     const info = await window.itemscan.getConfigInfo();
+    document.getElementById('cfgAddonDir').textContent = info.addonDir;
     document.getElementById('cfgMapsDir').textContent = info.mapsDir;
     document.getElementById('cfgInvPath').textContent = info.inventoryPath;
     document.getElementById('cfgUserData').textContent = info.userData;
   } catch (err) { /* ignore */ }
-})();
+}
+refreshConfigInfo();
+
+// Browse to point the app at the user's Ashita itemscan addon folder.
+document.getElementById('browseAddonDir').addEventListener('click', async () => {
+  try {
+    await window.itemscan.browseAddonDir();
+    refreshConfigInfo();
+  } catch (err) { /* ignore */ }
+});
 
 async function initMapsDirHint() {
   try {
