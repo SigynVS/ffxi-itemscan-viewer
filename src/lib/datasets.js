@@ -34,4 +34,7 @@ const questNames = loadJson('quest_names.json');
 // Mission names by storyline: { "<storyline>": { "<rawValue>": "<name>" } }
 const missionNames = loadJson('mission_names.json');
 
-module.exports = { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames };
+// Ambuscade dataset: current mount/bosses and key item => mob targets.
+const ambuscade = loadJson('ambuscade.json');
+
+module.exports = { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames, ambuscade };

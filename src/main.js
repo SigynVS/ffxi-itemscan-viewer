@@ -9,6 +9,7 @@ const path = require('path');
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.ico');
 
 const { enrichInventory } = require('./lib/enrich');
+const { fetchAmbuscadeData } = require('./lib/ambuscade-fetch');
 const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
 const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
@@ -46,6 +47,7 @@ function updatePaths() {
 updatePaths();
 
 let mainWindow = null;
+let liveAmbuscade = null; // cached from bg-wiki, refreshed on launch
 let watchDebounce = null;
 let lastMapName = null; // so the map image is only re-read on zone change
 let lastImageMissing = false; // keep retrying if the PNG wasn't found yet
@@ -66,6 +68,7 @@ function createWindow() {
 
   mainWindow.removeMenu();
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  if (!app.isPackaged) mainWindow.webContents.openDevTools();
 }
 
 // Reads, parses, and enriches inventory.json, then pushes it to the renderer.
@@ -76,7 +79,7 @@ async function pushInventory() {
   try {
     const raw = fs.readFileSync(INVENTORY_PATH, 'utf8');
     const data = JSON.parse(raw);
-    const enriched = enrichInventory(data);
+    const enriched = enrichInventory(data, liveAmbuscade);
     mainWindow.webContents.send('inventory:update', enriched);
   } catch (err) {
     mainWindow.webContents.send('inventory:error', {
@@ -232,11 +235,16 @@ ipcMain.handle('open:external', (_event, url) => {
 app.whenReady().then(() => {
   createWindow();
   watchInventory();
-  // Initial load once the window is ready to receive it.
+  // Push as soon as the window is ready (liveAmbuscade may still be null here).
   mainWindow.webContents.once('did-finish-load', () => {
     pushInventory();
     pushPosition();
   });
+  // Fetch live Ambuscade data in parallel; re-push when it arrives.
+  fetchAmbuscadeData().then((data) => {
+    liveAmbuscade = data;
+    if (mainWindow) pushInventory();
+  }).catch(() => {});
   // Poll position.json ~3x/sec for the live map dot (reliable vs fs.watch).
   setInterval(pushPosition, 300);
 
