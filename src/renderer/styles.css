@@ -412,3 +412,128 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 .ambuscade-key-name { font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .ambuscade-key-name .owned { color: var(--green); font-size: 11px; font-weight: 400; }
 .ambuscade-key-mobs { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+/* ── Character tab ─────────────────────────────────────────────── */
+
+.char-header {
+  padding: 14px 18px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.char-name {
+  font: 600 20px/1 var(--serif);
+  color: var(--gold);
+  letter-spacing: 0.03em;
+}
+.char-job-line {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.char-body {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.char-section-title {
+  font: 600 11px/1 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Job levels grid — 6 columns */
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.job-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--row);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 5px 8px;
+  gap: 6px;
+}
+.job-cell.is-main { background: #2a200a; border-color: var(--accent); }
+.job-cell.is-sub  { background: #1e1a0e; border-color: var(--accent-soft); }
+.job-cell.is-locked { opacity: 0.35; }
+.job-abbr { font: 600 12px/1 var(--mono); color: var(--text); }
+.job-cell.is-main .job-abbr { color: var(--gold); }
+.job-cell.is-sub  .job-abbr { color: var(--accent); }
+.job-lvl { font: 12px/1 var(--mono); color: var(--muted); min-width: 20px; text-align: right; }
+.job-cell.is-main .job-lvl,
+.job-cell.is-sub  .job-lvl { color: var(--text); }
+
+/* Equipment list */
+.equip-list { display: flex; flex-direction: column; gap: 2px; }
+.equip-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  background: var(--row);
+  border: 1px solid transparent;
+  cursor: default;
+}
+.equip-row:hover { border-color: var(--border); background: var(--row-alt); }
+.equip-empty { opacity: 0.45; }
+.equip-slot-label {
+  flex: none;
+  width: 52px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  font-family: var(--mono);
+}
+.equip-item-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.equip-wiki-btn {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 5px;
+  cursor: pointer;
+  line-height: 1;
+}
+.equip-wiki-btn:hover { border-color: var(--accent-soft); color: var(--accent); background: transparent; }
+
+/* Equipment stat tooltip */
+.equip-tooltip {
+  position: fixed;
+  z-index: 900;
+  max-width: 340px;
+  background: #0e0c08;
+  border: 1px solid var(--accent-soft);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font: 12px/1.55 var(--mono);
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.equip-tooltip.visible { opacity: 1; }

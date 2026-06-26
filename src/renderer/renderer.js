@@ -93,6 +93,12 @@ function gil(n) {
   return n.toLocaleString('en-US') + 'g';
 }
 
+// FFXI job IDs 1-22 in order.
+const JOBS = ['WAR','MNK','WHM','BLM','RDM','THF','PLD','DRK','BST','BRD','RNG','SAM','NIN','DRG','SMN','BLU','COR','PUP','DNC','SCH','GEO','RUN'];
+
+// Equipment slot labels in slot-id order (0-15).
+const EQUIP_SLOTS = ['Main','Sub','Ranged','Ammo','Head','Neck','L.Ear','R.Ear','Body','Hands','L.Ring','R.Ring','Back','Waist','Legs','Feet'];
+
 function escapeHtml(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
@@ -754,6 +760,102 @@ function renderAmbuscade(ambuscade) {
   ambuscadePanelEl.innerHTML = source + bossList + notesHtml + strategiesHtml + vol2Html + keyItemsHtml;
 }
 
+// ── Character tab ────────────────────────────────────────────────
+
+const charNameEl    = document.getElementById('charName');
+const charJobLineEl = document.getElementById('charJobLine');
+const jobGridEl     = document.getElementById('jobGrid');
+const equipListEl   = document.getElementById('equipList');
+const equipTooltipEl = document.getElementById('equipTooltip');
+
+function showEquipTooltip(rowEl, desc) {
+  if (!desc) return;
+  equipTooltipEl.textContent = desc;
+  // Place off-screen first so offsetHeight is measurable
+  equipTooltipEl.style.top  = '-9999px';
+  equipTooltipEl.style.left = '-9999px';
+  equipTooltipEl.classList.add('visible');
+
+  const rect = rowEl.getBoundingClientRect();
+  const th   = equipTooltipEl.offsetHeight;
+  const tw   = equipTooltipEl.offsetWidth;
+  const top  = (window.innerHeight - rect.bottom >= th + 8)
+    ? rect.bottom + 4
+    : rect.top - th - 4;
+  const left = Math.min(rect.left, window.innerWidth - tw - 8);
+  equipTooltipEl.style.top  = `${Math.max(4, top)}px`;
+  equipTooltipEl.style.left = `${Math.max(4, left)}px`;
+}
+
+function hideEquipTooltip() {
+  equipTooltipEl.classList.remove('visible');
+}
+
+function renderCharacter(data) {
+  // ── Header ──────────────────────────────────────────────────────
+  charNameEl.textContent = data.character || '—';
+
+  const mainName = data.mainJob ? (JOBS[data.mainJob - 1] || '???') : null;
+  const subName  = data.subJob  ? (JOBS[data.subJob  - 1] || null)  : null;
+  const mainLv   = data.mainJobLevel || null;
+  const subLv    = data.subJobLevel  || null;
+
+  let jobLine = mainName ? `${mainName}${mainLv ?? ''}` : '';
+  if (subName && subLv) jobLine += `/${subName}${subLv}`;
+  charJobLineEl.textContent = jobLine;
+
+  // ── Job levels grid ─────────────────────────────────────────────
+  const levels = Array.isArray(data.jobLevels) ? data.jobLevels : [];
+  jobGridEl.innerHTML = JOBS.map((name, i) => {
+    const lvl    = levels[i] || 0;
+    const isMain = data.mainJob === i + 1;
+    const isSub  = data.subJob  === i + 1;
+    const cls = isMain ? 'job-cell is-main'
+              : isSub  ? 'job-cell is-sub'
+              : lvl > 0 ? 'job-cell'
+              :            'job-cell is-locked';
+    return `<div class="${cls}">
+      <span class="job-abbr">${name}</span>
+      <span class="job-lvl">${lvl > 0 ? lvl : '—'}</span>
+    </div>`;
+  }).join('');
+
+  // ── Equipment list ───────────────────────────────────────────────
+  const bySlot = {};
+  for (const eq of (data.equipment || [])) bySlot[eq.slot] = eq;
+
+  equipListEl.innerHTML = EQUIP_SLOTS.map((label, slot) => {
+    const eq = bySlot[slot];
+    if (!eq) {
+      return `<div class="equip-row equip-empty">
+        <span class="equip-slot-label">${label}</span>
+        <span class="equip-item-name muted">—</span>
+      </div>`;
+    }
+    return `<div class="equip-row" data-desc="${escapeHtml(eq.description || '')}">
+      <span class="equip-slot-label">${label}</span>
+      <span class="equip-item-name">${escapeHtml(eq.name)}</span>
+      <button class="equip-wiki-btn" data-wiki="${escapeHtml(eq.name)}" title="BG-Wiki">↗</button>
+    </div>`;
+  }).join('');
+
+  // Tooltip events
+  equipListEl.querySelectorAll('.equip-row[data-desc]').forEach((row) => {
+    row.addEventListener('mouseenter', () => showEquipTooltip(row, row.dataset.desc));
+    row.addEventListener('mouseleave', hideEquipTooltip);
+  });
+
+  // Wiki button events
+  equipListEl.querySelectorAll('.equip-wiki-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.itemscan.openExternal(
+        `https://www.bg-wiki.com/ffxi/${encodeURIComponent(btn.dataset.wiki)}`
+      );
+    });
+  });
+}
+
 window.itemscan.onInventory(async (data) => {
   errorEl.classList.add('hidden');
   currentData = data;
@@ -778,6 +880,7 @@ window.itemscan.onInventory(async (data) => {
   renderAmbuscade(data.ambuscade);
   renderMissions(data.missions, data.character);
   renderRoe(data.roe, data.character);
+  renderCharacter(data);
   render();
 });
 

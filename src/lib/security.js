@@ -59,6 +59,55 @@ function validateInventoryJson(raw) {
     auditLog('SCHEMA_INVALID', `rank is not a number: ${typeof data.rank}`);
     throw new Error('inventory.json rank must be a number');
   }
+  // Validate optional job level fields
+  for (const f of ['main_job', 'main_job_level', 'sub_job', 'sub_job_level']) {
+    if (data[f] !== undefined && typeof data[f] !== 'number') {
+      auditLog('SCHEMA_INVALID', `${f} is not a number: ${typeof data[f]}`);
+      throw new Error(`inventory.json ${f} must be a number`);
+    }
+  }
+  if (data.job_levels !== undefined) {
+    if (!Array.isArray(data.job_levels) || data.job_levels.length > 22) {
+      auditLog('SCHEMA_INVALID', `job_levels invalid (len=${Array.isArray(data.job_levels) ? data.job_levels.length : 'non-array'})`);
+      throw new Error('inventory.json job_levels must be an array of ≤22 numbers');
+    }
+    for (const lvl of data.job_levels) {
+      if (typeof lvl !== 'number') {
+        auditLog('SCHEMA_INVALID', 'job_levels contains non-number');
+        throw new Error('inventory.json job_levels entries must be numbers');
+      }
+    }
+  }
+
+  // Validate optional equipment array
+  if (data.equipment !== undefined) {
+    if (!Array.isArray(data.equipment) || data.equipment.length > 16) {
+      auditLog('SCHEMA_INVALID', `equipment invalid (len=${Array.isArray(data.equipment) ? data.equipment.length : 'non-array'})`);
+      throw new Error('inventory.json equipment must be an array of ≤16 objects');
+    }
+    for (const eq of data.equipment) {
+      if (typeof eq !== 'object' || eq === null || Array.isArray(eq)) {
+        auditLog('SCHEMA_INVALID', 'equipment entry is not a plain object');
+        throw new Error('Each equipment entry must be an object');
+      }
+      if (typeof eq.slot !== 'number' || eq.slot < 0 || eq.slot > 15) {
+        auditLog('SCHEMA_INVALID', `equipment slot out of range: ${eq.slot}`);
+        throw new Error('Equipment slot must be 0–15');
+      }
+      if (typeof eq.name !== 'string' || eq.name.length > 64) {
+        auditLog('SCHEMA_INVALID', `equipment name invalid for slot ${eq.slot}`);
+        throw new Error('Equipment name must be a string ≤64 chars');
+      }
+      if (eq.description !== undefined && typeof eq.description !== 'string') {
+        auditLog('SCHEMA_INVALID', `equipment description not a string for slot ${eq.slot}`);
+        throw new Error('Equipment description must be a string');
+      }
+      if (typeof eq.description === 'string' && eq.description.length > 2000) {
+        eq.description = eq.description.slice(0, 2000);
+      }
+    }
+  }
+
   // Validate each item in the items array
   const items = data.items;
   if (items !== undefined && !Array.isArray(items)) {

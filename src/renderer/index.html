@@ -26,6 +26,7 @@
     <button class="tab" data-tab="quests">Quests</button>
     <button class="tab" data-tab="ambuscade">Ambuscade</button>
     <button class="tab" data-tab="missions">Missions</button>
+    <button class="tab" data-tab="character">Character</button>
     <button class="tab" data-tab="config">Config</button>
   </nav>
 
@@ -213,6 +214,7 @@
           <option value="quests">Quests</option>
           <option value="ambuscade">Ambuscade</option>
           <option value="missions">Missions</option>
+          <option value="character">Character</option>
         </select>
       </label>
       <div class="cfg-row"><span>Map images</span>
@@ -235,7 +237,28 @@
     </div>
   </section>
 
+  <!-- Character -->
+  <section class="tab-panel" data-panel="character">
+    <div class="char-header">
+      <span id="charName" class="char-name">—</span>
+      <span id="charJobLine" class="char-job-line"></span>
+    </div>
+    <div class="char-body">
+      <div class="char-section">
+        <div class="char-section-title">Job Levels</div>
+        <div id="jobGrid" class="job-grid"></div>
+      </div>
+      <div class="char-section">
+        <div class="char-section-title">Equipment</div>
+        <div id="equipList" class="equip-list"></div>
+      </div>
+    </div>
+  </section>
+
   </div><!-- /.content -->
+
+  <!-- Equipment description tooltip -->
+  <div id="equipTooltip" class="equip-tooltip"></div>
 
   <!-- Chronicle-style detail panel (slide-in from right) -->
   <div class="detail-overlay" id="detailOverlay">
