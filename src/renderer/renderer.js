@@ -1128,6 +1128,18 @@ document.getElementById('browseAddonDir').addEventListener('click', async () => 
   try { await window.itemscan.browseAddonDir(); refreshConfigInfo(); } catch (_) { /* ignore */ }
 });
 
+const reloadAddonBtn = document.getElementById('reloadAddon');
+reloadAddonBtn.addEventListener('click', async () => {
+  reloadAddonBtn.disabled = true;
+  reloadAddonBtn.textContent = 'Reloading…';
+  const ok = await window.itemscan.reloadAddon();
+  reloadAddonBtn.textContent = ok ? 'Sent ✓' : 'Failed ✗';
+  setTimeout(() => {
+    reloadAddonBtn.textContent = 'Reload in-game';
+    reloadAddonBtn.disabled = false;
+  }, 3000);
+});
+
 async function initMapsDirHint() {
   try {
     mapDirHintEl.textContent = await window.itemscan.getMapsDir();

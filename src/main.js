@@ -260,6 +260,19 @@ ipcMain.handle('config:browseAddonDir', async () => {
   return addonDir;
 });
 
+// Writes reload_flag.txt to the addon folder; the Lua addon polls this every ~2s
+// and queues /addon reload itemscan, then auto-scans on load.
+ipcMain.handle('addon:reload', () => {
+  try {
+    fs.writeFileSync(path.join(addonDir, 'reload_flag.txt'), '1', 'utf8');
+    auditLog('ADDON_RELOAD', 'reload_flag.txt written');
+    return true;
+  } catch (err) {
+    auditLog('ADDON_RELOAD_FAIL', err.message);
+    return false;
+  }
+});
+
 // Opens a URL in the user's default browser. Restricted to the two FFXI
 // reference sites so the renderer can't be tricked into opening arbitrary URLs.
 ipcMain.handle('open:external', (_event, url) => {
