@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';" />
   <title>FFXI Item Scan</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -20,11 +20,13 @@
 
   <nav id="tabs" class="tabs">
     <button class="tab active" data-tab="items">Items</button>
-    <button class="tab" data-tab="gobbie">Gobbiebag</button>
+    <button class="tab" data-tab="gobbie">Dashboard</button>
     <button class="tab" data-tab="map">Map</button>
     <button class="tab" data-tab="roe">Records of Eminence</button>
     <button class="tab" data-tab="quests">Quests</button>
+    <button class="tab" data-tab="ambuscade">Ambuscade</button>
     <button class="tab" data-tab="missions">Missions</button>
+    <button class="tab" data-tab="character">Character</button>
     <button class="tab" data-tab="config">Config</button>
   </nav>
 
@@ -51,6 +53,7 @@
       <table id="grid">
         <thead>
           <tr>
+            <th class="col-status" title="Quest item (green) · Gobbiebag (gold) · plain (dim)"></th>
             <th class="sortable" data-key="name">Item</th>
             <th class="sortable num" data-key="count">Qty</th>
             <th class="sortable" data-key="container_name">Where</th>
@@ -66,9 +69,9 @@
     </main>
   </section>
 
-  <!-- Gobbiebag -->
+  <!-- Dashboard (replaces old Gobbiebag tab) -->
   <section class="tab-panel" data-panel="gobbie">
-    <section id="progress" class="progress"></section>
+    <div id="dashboard" class="dashboard"></div>
   </section>
 
   <!-- Map -->
@@ -89,20 +92,91 @@
 
   <!-- Records of Eminence -->
   <section class="tab-panel" data-panel="roe">
-    <div class="panel-head">Records of Eminence <span id="roeCount" class="roe-count"></span></div>
-    <div id="roeList" class="roe-list"></div>
+    <div class="list-header">
+      <div class="list-title">
+        Records of Eminence
+        <div class="list-pct-block">
+          <span id="roeCount" class="list-pct-num">—</span>
+          <span class="list-pct-count">active</span>
+        </div>
+      </div>
+      <div class="list-subtitle">Active objectives captured from game packets</div>
+    </div>
+    <div class="list-toolbar">
+      <input type="text" class="list-search" id="roeSearch" placeholder="Search objectives…" />
+      <div class="toolbar-group">
+        <span class="toolbar-label">Sort:</span>
+        <button class="toolbar-btn active" data-sort-roe="default">Default</button>
+        <button class="toolbar-btn" data-sort-roe="name">Name</button>
+        <button class="toolbar-btn" data-sort-roe="progress">Progress</button>
+      </div>
+    </div>
+    <div id="roeList" class="status-list"></div>
   </section>
 
   <!-- Quests -->
   <section class="tab-panel" data-panel="quests">
-    <div class="panel-head">Active quests <span id="questCount" class="panel-note"></span></div>
-    <div id="questList" class="quest-list"></div>
+    <div class="list-header">
+      <div class="list-title">
+        Active Quests
+        <div class="list-pct-block">
+          <span id="questCount" class="list-pct-num">—</span>
+          <span class="list-pct-count">active</span>
+        </div>
+      </div>
+      <div class="list-subtitle">Quests captured from game packets</div>
+    </div>
+    <div class="list-toolbar">
+      <input type="text" class="list-search" id="questSearch" placeholder="Search quests…" />
+      <div class="toolbar-group">
+        <span class="toolbar-label">Sort:</span>
+        <button class="toolbar-btn active" data-sort-quest="default">Default</button>
+        <button class="toolbar-btn" data-sort-quest="name">Name</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Show:</span>
+        <button class="toolbar-btn active" data-filter-quest="all">All</button>
+      </div>
+    </div>
+    <div id="questList" class="status-list"></div>
+  </section>
+
+  <!-- Ambuscade -->
+  <section class="tab-panel" data-panel="ambuscade">
+    <div class="panel-head">Ambuscade</div>
+    <div class="panel-note">This month's bosses and Ambuscade key item locations.</div>
+    <div class="ambuscade-panel">
+      <p class="muted">Configure <code>data/ambuscade.json</code> with this month's bosses and key item mobs.</p>
+    </div>
   </section>
 
   <!-- Missions -->
   <section class="tab-panel" data-panel="missions">
-    <div class="panel-head">Mission progress <span class="panel-note">(CoP &amp; Assault show raw stage — no verified name table)</span></div>
-    <div id="missionGrid" class="mission-grid"></div>
+    <div class="list-header">
+      <div class="list-title">
+        Mission Progress
+        <div class="list-pct-block">
+          <span id="missionCount" class="list-pct-num">—</span>
+          <span class="list-pct-count">completed</span>
+        </div>
+      </div>
+      <div class="list-subtitle">Storyline completion &middot; CoP &amp; Assault show raw stage</div>
+    </div>
+    <div class="list-toolbar">
+      <div class="toolbar-group">
+        <span class="toolbar-label">Sort:</span>
+        <button class="toolbar-btn active" data-sort-mission="default">Default</button>
+        <button class="toolbar-btn" data-sort-mission="name">Name</button>
+        <button class="toolbar-btn" data-sort-mission="status">Status</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Show:</span>
+        <button class="toolbar-btn active" data-filter-mission="all">All</button>
+        <button class="toolbar-btn" data-filter-mission="complete">Completed</button>
+        <button class="toolbar-btn" data-filter-mission="todo">Todo</button>
+      </div>
+    </div>
+    <div id="missionGrid" class="status-list"></div>
   </section>
 
   <!-- Config -->
@@ -115,6 +189,10 @@
       <label class="cfg-row"><span>Map tracking</span>
         <input id="cfgMap" type="checkbox" /> <span class="panel-note">stream position for the live map dot</span>
       </label>
+      <div class="cfg-row"><span>Reload addon</span>
+        <button id="reloadAddon" type="button">Reload in-game</button>
+        <span class="panel-note">writes reload flag → addon reloads &amp; auto-scans within ~2s</span>
+      </div>
     </div>
 
     <div class="panel-head">App settings</div>
@@ -134,11 +212,13 @@
       <label class="cfg-row"><span>Default tab</span>
         <select id="defaultTabCfg">
           <option value="items">Items</option>
-          <option value="gobbie">Gobbiebag</option>
+          <option value="gobbie">Dashboard</option>
           <option value="map">Map</option>
           <option value="roe">Records of Eminence</option>
           <option value="quests">Quests</option>
+          <option value="ambuscade">Ambuscade</option>
           <option value="missions">Missions</option>
+          <option value="character">Character</option>
         </select>
       </label>
       <div class="cfg-row"><span>Map images</span>
@@ -161,7 +241,40 @@
     </div>
   </section>
 
+  <!-- Character -->
+  <section class="tab-panel" data-panel="character">
+    <div class="char-header">
+      <span id="charName" class="char-name">—</span>
+      <span id="charJobLine" class="char-job-line"></span>
+    </div>
+    <div class="char-body">
+      <div class="char-section">
+        <div class="char-section-title">Job Levels</div>
+        <div id="jobGrid" class="job-grid"></div>
+      </div>
+      <div class="char-section">
+        <div class="char-section-title">Equipment</div>
+        <div id="equipList" class="equip-list"></div>
+      </div>
+    </div>
+  </section>
+
   </div><!-- /.content -->
+
+  <!-- Equipment description tooltip -->
+  <div id="equipTooltip" class="equip-tooltip"></div>
+
+  <!-- Chronicle-style detail panel (slide-in from right) -->
+  <div class="detail-overlay" id="detailOverlay">
+    <div class="detail-panel" id="detailPanel">
+      <button class="detail-close" id="detailClose" title="Close">&times;</button>
+      <div id="detailContent"></div>
+      <div class="detail-prev-next">
+        <button class="pn-btn pn-prev" id="detailPrev">&#8592; Prev</button>
+        <button class="pn-btn pn-next" id="detailNext">Next &#8594;</button>
+      </div>
+    </div>
+  </div>
 
   <script src="renderer.js"></script>
 </body>

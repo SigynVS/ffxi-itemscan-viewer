@@ -4,11 +4,26 @@ const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+const {
+  auditLog,
+  checkFileSize,
+  validateInventoryJson,
+  validateAddonPath,
+  validateItemId,
+  validateItemIds,
+  validateConcurrency,
+  validateCharacter,
+  validateLabelKey,
+  validateLabelName,
+  validateAddonConfig
+} = require('./lib/security');
+
 // Window icon for dev runs (`npm start`). In packaged builds the window
 // inherits the icon embedded in the .exe, so this path simply won't exist.
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.ico');
 
 const { enrichInventory } = require('./lib/enrich');
+const { fetchAmbuscadeData } = require('./lib/ambuscade-fetch');
 const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
 const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
@@ -17,7 +32,19 @@ const { getZoneMap, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapd
 // Persisted app settings (the configurable Ashita addon folder, etc.).
 function settingsPath() { return path.join(app.getPath('userData'), 'app_settings.json'); }
 function loadSettings() {
-  try { return JSON.parse(fs.readFileSync(settingsPath(), 'utf8')); } catch (err) { return {}; }
+  try {
+    const raw = fs.readFileSync(settingsPath(), 'utf8');
+    const s = JSON.parse(raw);
+    // Validate the stored addonDir before trusting it
+    if (s.addonDir !== undefined) {
+      try { s.addonDir = validateAddonPath(s.addonDir); }
+      catch (err) {
+        auditLog('SETTINGS_INVALID', `bad addonDir in settings: ${err.message}`);
+        delete s.addonDir;
+      }
+    }
+    return s;
+  } catch (err) { return {}; }
 }
 function saveSettings(s) {
   try { fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2)); } catch (err) { /* ignore */ }
@@ -46,6 +73,7 @@ function updatePaths() {
 updatePaths();
 
 let mainWindow = null;
+let liveAmbuscade = null; // cached from bg-wiki, refreshed on launch
 let watchDebounce = null;
 let lastMapName = null; // so the map image is only re-read on zone change
 let lastImageMissing = false; // keep retrying if the PNG wasn't found yet
@@ -60,12 +88,17 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false
     }
   });
 
   mainWindow.removeMenu();
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  // if (!app.isPackaged) mainWindow.webContents.openDevTools();
 }
 
 // Reads, parses, and enriches inventory.json, then pushes it to the renderer.
@@ -74,9 +107,10 @@ async function pushInventory() {
     return;
   }
   try {
+    checkFileSize(INVENTORY_PATH);
     const raw = fs.readFileSync(INVENTORY_PATH, 'utf8');
-    const data = JSON.parse(raw);
-    const enriched = enrichInventory(data);
+    const data = validateInventoryJson(raw);
+    const enriched = enrichInventory(data, liveAmbuscade);
     mainWindow.webContents.send('inventory:update', enriched);
   } catch (err) {
     mainWindow.webContents.send('inventory:error', {
@@ -153,26 +187,26 @@ function setAddonDir(dir) {
 
 // Renderer asks for a live FFXIAH price for one item id.
 ipcMain.handle('price:fetch', async (_event, itemId) => {
-  return getPrice(itemId);
+  return getPrice(validateItemId(itemId));
 });
 
 // Renderer asks for already-saved prices (no network) to show on startup.
-ipcMain.handle('price:cached', (_event, itemIds) => getCachedPrices(itemIds));
+ipcMain.handle('price:cached', (_event, itemIds) => getCachedPrices(validateItemIds(itemIds)));
 
 // Renderer sets how many price fetches run in parallel.
 ipcMain.handle('price:concurrency', (_event, n) => {
-  return setConcurrency(n);
+  return setConcurrency(validateConcurrency(n));
 });
 
 // RoE labels: per-character user names for objective ids.
-ipcMain.handle('roe:labels', (_event, character) => getLabels(character));
+ipcMain.handle('roe:labels', (_event, character) => getLabels(validateCharacter(character)));
 ipcMain.handle('roe:setLabel', (_event, { character, id, name }) =>
-  setLabel(character, id, name));
+  setLabel(validateCharacter(character), validateLabelKey(String(id)), validateLabelName(name)));
 
 // Mission labels: per-character user names for unresolved mission stages.
-ipcMain.handle('mission:labels', (_event, character) => getMissionLabels(character));
+ipcMain.handle('mission:labels', (_event, character) => getMissionLabels(validateCharacter(character)));
 ipcMain.handle('mission:setLabel', (_event, { character, key, name }) =>
-  setMissionLabel(character, key, name));
+  setMissionLabel(validateCharacter(character), validateLabelKey(key), validateLabelName(name)));
 
 // Opens (creating if needed) the maps folder so the user can drop the pack in.
 ipcMain.handle('map:openFolder', () => {
@@ -194,9 +228,10 @@ ipcMain.handle('addon:getConfig', () => {
 });
 ipcMain.handle('addon:setConfig', (_event, cfg) => {
   try {
-    fs.writeFileSync(ADDON_CONFIG_PATH, JSON.stringify(cfg));
+    fs.writeFileSync(ADDON_CONFIG_PATH, JSON.stringify(validateAddonConfig(cfg)));
     return true;
   } catch (err) {
+    auditLog('CONFIG_WRITE_ERROR', err.message);
     return false;
   }
 });
@@ -217,8 +252,25 @@ ipcMain.handle('config:browseAddonDir', async () => {
     properties: ['openDirectory']
   });
   if (res.canceled || !res.filePaths.length) { return addonDir; }
-  setAddonDir(res.filePaths[0]);
+  try {
+    setAddonDir(validateAddonPath(res.filePaths[0]));
+  } catch (err) {
+    auditLog('PATH_REJECTED', err.message);
+  }
   return addonDir;
+});
+
+// Writes reload_flag.txt to the addon folder; the Lua addon polls this every ~2s
+// and queues /addon reload itemscan, then auto-scans on load.
+ipcMain.handle('addon:reload', () => {
+  try {
+    fs.writeFileSync(path.join(addonDir, 'reload_flag.txt'), '1', 'utf8');
+    auditLog('ADDON_RELOAD', 'reload_flag.txt written');
+    return true;
+  } catch (err) {
+    auditLog('ADDON_RELOAD_FAIL', err.message);
+    return false;
+  }
 });
 
 // Opens a URL in the user's default browser. Restricted to the two FFXI
@@ -230,13 +282,19 @@ ipcMain.handle('open:external', (_event, url) => {
 });
 
 app.whenReady().then(() => {
+  auditLog('APP_START', `v${app.getVersion()} pid=${process.pid}`);
   createWindow();
   watchInventory();
-  // Initial load once the window is ready to receive it.
+  // Push as soon as the window is ready (liveAmbuscade may still be null here).
   mainWindow.webContents.once('did-finish-load', () => {
     pushInventory();
     pushPosition();
   });
+  // Fetch live Ambuscade data in parallel; re-push when it arrives.
+  fetchAmbuscadeData().then((data) => {
+    liveAmbuscade = data;
+    if (mainWindow) pushInventory();
+  }).catch(() => {});
   // Poll position.json ~3x/sec for the live map dot (reliable vs fs.watch).
   setInterval(pushPosition, 300);
 

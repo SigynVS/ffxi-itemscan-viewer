@@ -1,6 +1,6 @@
 'use strict';
 
-const { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames } = require('./datasets');
+const { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames, ambuscade } = require('./datasets');
 
 const BASE_INVENTORY = 30;       // Slots before any Gobbiebag quest.
 const SLOTS_PER_PART = 5;        // Each completed Gobbiebag quest adds 5.
@@ -93,12 +93,19 @@ function resolveMissions(missions, nationId) {
     if (key === 'nation') {
       table = (typeof nationId === 'number' && table[NATION_KEYS[nationId]]) || {};
     }
-    out[key] = { value, name: table[String(value)] || null };
+    let name = table[String(value)] || null;
+    // Mid-mission progress values have no named entry; fall back to the nearest
+    // lower named stage so the player sees which mission they're currently in.
+    if (name === null && value > 0 && value !== 65535) {
+      const floor = Object.keys(table).map(Number).filter(k => k <= value).sort((a, b) => b - a)[0];
+      if (floor !== undefined) name = table[String(floor)] || null;
+    }
+    out[key] = { value, name };
   }
   return out;
 }
 
-function enrichInventory(data) {
+function enrichInventory(data, liveAmbuscade) {
   const items = Array.isArray(data.items) ? data.items : [];
 
   // Sum counts per item name (an item can span multiple containers).
@@ -122,6 +129,27 @@ function enrichInventory(data) {
     };
   });
 
+  // Use live bg-wiki data if available, otherwise fall back to local JSON.
+  const amb = liveAmbuscade || ambuscade;
+  const kiSource = amb.keyItems || {};
+  const keyItemNames = Object.keys(kiSource);
+
+  const cur = amb.current || {};
+  const currentAmbuscade = {
+    fetched: Boolean(liveAmbuscade && liveAmbuscade.fetched),
+    month: amb.month || null,
+    mount: cur.mount || null,
+    bosses: Array.isArray(cur.bosses) ? cur.bosses : [],
+    notes: Array.isArray(cur.notes) ? cur.notes : [],
+    strategies: Array.isArray(cur.strategies) ? cur.strategies : [],
+    vol2: amb.vol2 || null,
+    keyItems: keyItemNames.map((name) => ({
+      name,
+      count: ownedCounts[name] || 0,
+      mobs: (kiSource[name] && kiSource[name].mobs) || []
+    }))
+  };
+
   return {
     character: data.character || 'Unknown',
     timestamp: data.timestamp || 0,
@@ -129,9 +157,16 @@ function enrichInventory(data) {
     nation: typeof data.nation === 'number' ? data.nation : null,
     rank: data.rank || null,
     rankPoints: data.rank_points || null,
+    mainJob: data.main_job || null,
+    mainJobLevel: data.main_job_level || null,
+    subJob: data.sub_job || null,
+    subJobLevel: data.sub_job_level || null,
+    jobLevels: Array.isArray(data.job_levels) ? data.job_levels : [],
+    equipment: Array.isArray(data.equipment) ? data.equipment : [],
     roe: buildRoe(data.roe),
     missions: resolveMissions(data.missions, data.nation),
     activeQuests: buildActiveQuests(data.quests),
+    ambuscade: currentAmbuscade,
     count: enriched.length,
     progress: buildProgress(data.inventory_max || 0, ownedCounts),
     items: enriched

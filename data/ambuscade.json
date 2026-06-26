@@ -1,0 +1,58 @@
+{
+  "rotation": {
+    "2026-01": { "mount": "Lamia" },
+    "2026-02": { "mount": "Fomor" },
+    "2026-03": { "mount": "Velkk" },
+    "2026-04": { "mount": "Antica" },
+    "2026-05": { "mount": "Tonberry" },
+    "2026-06": {
+      "mount": "Sahagin",
+      "bosses": [
+        "Bozzetto Songstress (BRD) — main boss, invincible until adds defeated",
+        "Bozzetto Wavefist (MNK) x2",
+        "Bozzetto Flowspear (DRG) x2",
+        "Bozzetto Hydrophile (WHM) — Difficult and above",
+        "Chirurgeon (WAR/Manta) — Very Difficult only, immune to sleep"
+      ],
+      "vol2": {
+        "mount": "Hecteyes",
+        "boss": "All-Watcher",
+        "adds": ["Ferrogazer", "Terragazer", "Naturagazer", "Ignisgazer", "Aquagazer"]
+      },
+      "keyItems": [
+        {
+          "name": "Ambuscade Primer Volume One",
+          "count": 0,
+          "mobs": ["Sahagin — Sea Serpent Grotto (Unity Warp 125)"]
+        },
+        {
+          "name": "Ambuscade Primer Volume Two",
+          "count": 0,
+          "mobs": [
+            "Vampire Leeches — Foret de Hennetiel (HP #1)",
+            "Worms — Den of Rancor (HP #1)",
+            "Leeches — Bostaunieux Oubliette (Survival Guide Warp)"
+          ]
+        }
+      ]
+    },
+    "2026-07": { "mount": "Qiqirn" },
+    "2026-08": { "mount": "Meeble" },
+    "2026-09": { "mount": "Qutrub" },
+    "2026-10": { "mount": "Dullahan" },
+    "2026-11": { "mount": "Moogle" },
+    "2026-12": { "mount": "Magic Mamool" },
+    "2027-01": { "mount": "Ironclad" },
+    "2027-02": { "mount": "Doppleganger" },
+    "2027-03": { "mount": "Corse" },
+    "2027-04": { "mount": "Goblin" },
+    "2027-05": { "mount": "Orcs" },
+    "2027-06": { "mount": "Quadav" },
+    "2027-07": { "mount": "Yagudo" },
+    "2027-08": { "mount": "Gigas" },
+    "2027-09": { "mount": "Mamool" },
+    "2027-10": { "mount": "Troll" },
+    "2027-11": { "mount": "Frog" },
+    "2027-12": { "mount": "Soulflayer" }
+  }
+}

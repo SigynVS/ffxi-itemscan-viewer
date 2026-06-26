@@ -14,12 +14,11 @@ function load(name) {
   }
 }
 
-// Per-zone calibration: { "<zoneId>": { mapName, scale, offsetX, offsetY } }
-const zoneOffset = load('zoneOffset.json');
-// Multi-floor zones: { "<zoneId>": { mapName, maps: [{ mapId, offsetX, offsetY,
-// scale, ranges: [{x1,x2,y1,y2,z1,z2}] }] } }. The active sub-map is chosen by
-// which range contains the player's position; the file is <mapName>_<mapId>.png.
-const zonesWithMaps = load('zonesWithMaps.json');
+// Per-zone calibration data sourced from Electron-FFXI-Atlas by miguelstrife
+// (https://github.com/miguelstrife/Electron-FFXI-Atlas), MIT licensed.
+// Files live under data/atlas/ to keep third-party data clearly separated.
+const zoneOffset    = load('atlas/zoneOffset.json');
+const zonesWithMaps = load('atlas/zonesWithMaps.json');
 
 // User-supplied map images live here (the remapster wiki pack, unzipped).
 // Override with ITEMSCAN_MAPS. Not bundled (too large + licensing).
