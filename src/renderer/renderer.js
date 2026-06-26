@@ -94,10 +94,12 @@ function gil(n) {
 }
 
 function escapeHtml(s) {
-  return String(s)
+  return String(s ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
 
 function passesFilters(it) {
@@ -795,7 +797,7 @@ window.itemscan.onPosition((p) => {
       mapMsgEl.style.display = 'none';
     } else {
       mapImgEl.style.display = 'none';
-      mapMsgEl.innerHTML = `No image for <b>${p.mapName}.png</b>. `
+      mapMsgEl.innerHTML = `No image for <b>${escapeHtml(p.mapName)}.png</b>. `
         + 'Click <b>Open maps folder</b> above and drop the PNGs there '
         + '(from remapster-wiki-pack-1-1024).';
       mapMsgEl.style.display = '';
