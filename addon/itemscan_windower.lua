@@ -1,5 +1,12 @@
 --[[
-    itemscan — Windower port
+    itemscan (Windower port): NOT WORKING IN THIS BETA.
+
+    This addon still uses the old file-based design (writes inventory.json) and
+    is incompatible with the current app, which only accepts a TCP socket
+    connection. It must be rewritten to open a TCP socket like the Ashita addon
+    (see addon/itemscan.lua). Do not load or ship this yet.
+
+    Stale original notes:
     Writes inventory.json to the addon folder; the FFXI Item Scan Viewer
     (Electron app) reads it and displays inventory, character, and mission data.
 

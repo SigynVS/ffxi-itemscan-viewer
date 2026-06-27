@@ -2,7 +2,7 @@
 
 A second-monitor companion app for **Final Fantasy XI**. An in-game Lua addon streams your character's inventory, position, and progression data directly to the app over a local TCP socket — no files written, no polling, no alt-tabbing required.
 
-Supports both **Ashita v4** and **Windower** addon frameworks.
+Built for **Ashita v4**. Windower support is planned but is not working in this beta.
 
 > **Beta** — This is an early release. Please report bugs using the **Feedback** button in the app or by joining the [SigynVS Labs Discord](https://discord.gg/ahduPcRfZ6).
 
@@ -10,7 +10,7 @@ Supports both **Ashita v4** and **Windower** addon frameworks.
 
 ## Community & Feedback
 
-Join the **[SigynVS Labs Discord](https://discord.gg/ahduPcRfZ6)** to report bugs, request features, or help test the Windower port.
+Join the **[SigynVS Labs Discord](https://discord.gg/ahduPcRfZ6)** to report bugs or request features.
 
 You can also use the built-in **Feedback** button (top-right of the app) to send a report directly — no Discord account needed.
 
@@ -36,7 +36,7 @@ You can also use the built-in **Feedback** button (top-right of the app) to send
 
 - Windows 10 or 11
 - Final Fantasy XI (retail or private server)
-- **Ashita v4** *or* **Windower** (choose one based on what you already use)
+- **Ashita v4** (Windower support is planned but not working in this beta)
 - Node.js 18+ (only if building from source)
 
 ---
@@ -72,26 +72,15 @@ Grab the latest **`FFXI Item Scan Setup.exe`** from the [Releases](../../release
 
 #### Windower
 
-1. Copy `addon/itemscan_windower.lua` from this repo, rename it to `itemscan.lua`, and place it in a new folder in your Windower addons directory:
-
-   ```
-   <Windower>\addons\itemscan\itemscan.lua
-   ```
-
-2. Add it to your Windower startup script so it loads automatically on every login:
-
-   **`<Windower>\scripts\Default.txt`**
-   ```
-   /addon load itemscan
-   ```
-
-3. The addon auto-scans on load — no manual commands needed.
+Not supported in this beta. The Windower addon still uses the old file-based
+design and cannot connect to the app's TCP server yet. Windower support will
+return once the addon is rewritten for TCP. Use Ashita v4 for now.
 
 ---
 
 ### Step 3 — Launch the app and play
 
-That's it. The app auto-detects standard Ashita and Windower install paths and auto-scan is on by default — data updates the moment your inventory changes.
+That's it. The app auto-detects standard Ashita install paths and auto-scan is on by default, so data updates the moment your inventory changes.
 
 If the app can't find your addon folder (non-standard install location), open the **Config** tab → **Ashita itemscan folder** → **Browse…** and point it at `<Ashita>\addons\itemscan\`.
 
@@ -115,8 +104,6 @@ If you update the Lua file while FFXI is running, click **Reload addon** in the 
 | `/itemscan quests` | Print active quest counts by area to chat |
 | `/itemscan dumpresources` | Rebuild the item name database (run once after a game update adds new items) |
 
-> **Windower users:** prefix commands with `//` — e.g. `//itemscan auto`
-
 ---
 
 ## Maps
@@ -130,15 +117,9 @@ Map images are not bundled (large third-party assets). To enable the live positi
 
 ## Known issues & beta notes
 
-### Windower — needs in-game verification
+### Windower (not yet supported)
 
-The Windower port is new and has three areas that need testing. If you're on Windower and something looks wrong, check these first and report via the Feedback button:
-
-| Area | What to test | What to report |
-|------|-------------|----------------|
-| **Job levels** | Open the Character tab — do all your job levels show correctly? | If they're all 0, report it |
-| **Equipment** | Does your equipped gear show on the Character tab? | If slots are empty when you have gear on, report which slots |
-| **Inventory bags** | Do items appear from all bags (Safe, Storage, Satchel etc.)? | If a bag is missing entirely, report which one |
+The Windower addon still uses the old file-based design and cannot talk to the current TCP app, so it does not work in this beta. Windower support will return once the addon is rewritten for the TCP connection. Ashita v4 is the only supported framework right now.
 
 ### All users
 - FFXIAH price lookups are throttled and cached 24h — they're not instant
