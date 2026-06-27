@@ -279,6 +279,7 @@ ipcMain.handle('feedback:send', async (_event, { type, title, description, frame
   if (!feedbackCfg.webhookUrl) return { ok: false, error: 'No webhook configured' };
   const colors = { Bug: 15548997, Feature: 5793266, Other: 10066613 };
   const body = {
+    thread_name: `[${type}] ${String(title).slice(0, 100)}`,
     embeds: [{
       title: `[${type}] ${String(title).slice(0, 100)}`,
       description: String(description).slice(0, 1800) || '(no description)',
