@@ -4,13 +4,13 @@ A second-monitor companion app for **Final Fantasy XI**. An in-game Lua addon ex
 
 Supports both **Ashita v4** and **Windower** addon frameworks.
 
-> **Beta** — This is an early release. Please report bugs using the **Feedback** button in the app or by joining the [SigynVS Labs Discord](DISCORD_INVITE_PLACEHOLDER).
+> **Beta** — This is an early release. Please report bugs using the **Feedback** button in the app or by joining the [SigynVS Labs Discord](https://discord.gg/ahduPcRfZ6).
 
 ---
 
 ## Community & Feedback
 
-Join the **[SigynVS Labs Discord](DISCORD_INVITE_PLACEHOLDER)** to report bugs, request features, or help test the Windower port.
+Join the **[SigynVS Labs Discord](https://discord.gg/ahduPcRfZ6)** to report bugs, request features, or help test the Windower port.
 
 You can also use the built-in **Feedback** button (top-right of the app) to send a report directly — no Discord account needed.
 
