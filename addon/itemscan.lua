@@ -24,6 +24,14 @@ require 'common';
 local json    = require 'json';
 local socket  = require 'socket';
 
+-- Equipment slot id -> friendly label.
+local equip_slot_names = T{
+    [0]  = 'Main',   [1]  = 'Sub',     [2]  = 'Ranged', [3]  = 'Ammo',
+    [4]  = 'Head',   [5]  = 'Neck',    [6]  = 'L.Ear',  [7]  = 'R.Ear',
+    [8]  = 'Body',   [9]  = 'Hands',   [10] = 'L.Ring', [11] = 'R.Ring',
+    [12] = 'Back',   [13] = 'Waist',   [14] = 'Legs',   [15] = 'Feet',
+};
+
 -- Container id -> friendly name. Mirrors invmon's container table.
 local container_names = T{
     [0x00] = 'Inventory',
@@ -103,6 +111,20 @@ local function write_config()
         file:write(json.encode(cfg));
         file:close();
     end
+end
+
+local function reload_flag_path()
+    return ('%s\\reload_flag.txt'):fmt(addon.path);
+end
+
+-- When the viewer writes reload_flag.txt, queue a reload and consume the file.
+-- The new addon instance will auto-scan in its load_cb, so no manual /itemscan needed.
+local function poll_reload_flag()
+    local f = io.open(reload_flag_path(), 'r');
+    if (f == nil) then return; end
+    f:close();
+    os.remove(reload_flag_path());
+    AshitaCore:GetChatManager():QueueCommand(1, '/addon reload itemscan');
 end
 
 local function poll_config()
@@ -314,15 +336,12 @@ local function collect_inventory()
             for slot = 0, max do
                 local entry = inv:GetContainerItem(container, slot);
                 if (entry ~= nil and entry.Id ~= 0 and entry.Id ~= 65535) then
-                    local name, desc = resolve_item(entry.Id);
                     items:append(T{
                         id        = entry.Id,
                         count     = entry.Count,
                         container = container,
                         container_name = container_names[container] or ('Container %d'):fmt(container),
                         slot      = slot,
-                        name      = name,
-                        description = desc,
                     });
                 end
             end
@@ -347,23 +366,61 @@ local function do_scan(silent)
     -- National mission rank (0=San d'Oria, 1=Bastok, 2=Windurst), rank 1-10.
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     local nation, rank, rank_points = nil, nil, nil;
+    local main_job, main_job_level, sub_job, sub_job_level = nil, nil, nil, nil;
+    local job_levels = T{};
     if (player ~= nil) then
         nation      = player:GetNation();
         rank        = player:GetRank();
         rank_points = player:GetRankPoints();
+        main_job       = player:GetMainJob();
+        main_job_level = player:GetMainJobLevel();
+        sub_job        = player:GetSubJob();
+        sub_job_level  = player:GetSubJobLevel();
+        for job_id = 1, 22 do
+            job_levels[job_id] = player:GetJobLevel(job_id) or 0;
+        end
+    end
+
+    -- Current equipment: GetEquippedItem returns a packed Index where
+    -- the low byte is the slot within the container and the high byte is
+    -- the container id. Arithmetic is used instead of bit ops for portability.
+    local equipment = T{};
+    for slot = 0, 15 do
+        local equip = inv:GetEquippedItem(slot);
+        if (equip ~= nil) then
+            local raw   = equip.Index;
+            local idx   = raw % 256;                      -- low byte = slot within container
+            local cont  = math.floor(raw / 256) % 256;   -- high byte = container id
+            if (idx > 0) then
+                local item = inv:GetContainerItem(cont, idx);
+                if (item ~= nil and item.Id ~= 0 and item.Id ~= 65535) then
+                    equipment:append(T{
+                        slot      = slot,
+                        slot_name = equip_slot_names[slot] or ('Slot %d'):fmt(slot),
+                        id        = item.Id,
+                    });
+                end
+            end
+        end
     end
 
     local payload = T{
-        character     = charname,
-        timestamp     = os.time(),
-        inventory_max = inv_max,
-        nation        = nation,
-        rank          = rank,
-        rank_points   = rank_points,
-        roe           = itemscan.roe_active,
-        missions      = itemscan.missions,
-        quests        = itemscan.quests,
-        items         = collect_inventory(),
+        character      = charname,
+        timestamp      = os.time(),
+        inventory_max  = inv_max,
+        nation         = nation,
+        rank           = rank,
+        rank_points    = rank_points,
+        main_job       = main_job,
+        main_job_level = main_job_level,
+        sub_job        = sub_job,
+        sub_job_level  = sub_job_level,
+        job_levels     = job_levels,
+        equipment      = equipment,
+        roe            = itemscan.roe_active,
+        missions       = itemscan.missions,
+        quests         = itemscan.quests,
+        items          = collect_inventory(),
     };
 
     -- Send to viewer over socket. No file write -- app requires client to be running.
@@ -502,6 +559,35 @@ ashita.events.register('command', 'command_cb', function (e)
         return;
     end
 
+    -- Dumps all known item names and descriptions to items.json beside this addon.
+    -- Copy that file to the viewer's data/ folder then restart the app.
+    if (#args >= 2 and args[2]:lower() == 'dumpresources') then
+        local rm = AshitaCore:GetResourceManager();
+        local out = {};
+        local count = 0;
+        print('[itemscan] Dumping item database, please wait...');
+        for id = 1, 65535 do
+            local res = rm:GetItemById(id);
+            if (res ~= nil and res.Name ~= nil and res.Name[1] ~= nil and #res.Name[1] > 0) then
+                out[tostring(id)] = {
+                    name = sanitize(res.Name[1]),
+                    desc = (res.Description ~= nil and res.Description[1] ~= nil)
+                        and sanitize(res.Description[1]) or '',
+                };
+                count = count + 1;
+            end
+        end
+        local f = io.open(('%s\\items.json'):fmt(addon.path), 'w');
+        if (f ~= nil) then
+            f:write(json.encode(out));
+            f:close();
+            print(('[itemscan] items.json written (%d items). Copy to viewer data/ folder and restart the app.'):fmt(count));
+        else
+            print('[itemscan] ERROR: could not write items.json');
+        end
+        return;
+    end
+
     do_scan();
 end);
 
@@ -538,6 +624,10 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
     if (itemscan.auto and e.id == 0x001D) then
         itemscan.scan_at = itemscan.frame + 60; -- debounce ~1s
     end
+    -- Equipment change: re-export so the Character tab stays live.
+    if (itemscan.auto and e.id == 0x050) then
+        itemscan.scan_at = itemscan.frame + 15; -- debounce ~0.25s
+    end
 end);
 
 -- Read app-driven settings on load; connect to viewer; queue an auto-scan.
@@ -557,6 +647,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
     end
     if (itemscan.frame % 120 == 0) then
         poll_config();
+        poll_reload_flag();
     end
     -- Run a debounced auto-scan once the burst of triggers has settled (silent,
     -- so it doesn't spam chat).

@@ -1,6 +1,7 @@
 'use strict';
 
 const { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames, ambuscade } = require('./datasets');
+const { getItemName, getItemDesc } = require('./itemdb');
 
 const BASE_INVENTORY = 30;       // Slots before any Gobbiebag quest.
 const SLOTS_PER_PART = 5;        // Each completed Gobbiebag quest adds 5.
@@ -106,7 +107,13 @@ function resolveMissions(missions, nationId) {
 }
 
 function enrichInventory(data, liveAmbuscade) {
-  const items = Array.isArray(data.items) ? data.items : [];
+  // Resolve name/desc from static itemdb. Lua no longer sends them, but
+  // the fallback keeps old payloads working if they still include them.
+  const items = (Array.isArray(data.items) ? data.items : []).map(it => ({
+    ...it,
+    name:        it.name        || getItemName(it.id),
+    description: it.description !== undefined ? it.description : getItemDesc(it.id),
+  }));
 
   // Sum counts per item name (an item can span multiple containers).
   const ownedCounts = {};
@@ -162,7 +169,11 @@ function enrichInventory(data, liveAmbuscade) {
     subJob: data.sub_job || null,
     subJobLevel: data.sub_job_level || null,
     jobLevels: Array.isArray(data.job_levels) ? data.job_levels : [],
-    equipment: Array.isArray(data.equipment) ? data.equipment : [],
+    equipment: Array.isArray(data.equipment) ? data.equipment.map(eq => ({
+      ...eq,
+      name:        eq.name        || getItemName(eq.id),
+      description: eq.description !== undefined ? eq.description : getItemDesc(eq.id),
+    })) : [],
     roe: buildRoe(data.roe),
     missions: resolveMissions(data.missions, data.nation),
     activeQuests: buildActiveQuests(data.quests),
