@@ -94,7 +94,7 @@ function validateInventoryJson(raw) {
         auditLog('SCHEMA_INVALID', `equipment slot out of range: ${eq.slot}`);
         throw new Error('Equipment slot must be 0–15');
       }
-      if (typeof eq.name !== 'string' || eq.name.length > 64) {
+      if (eq.name !== undefined && (typeof eq.name !== 'string' || eq.name.length > 64)) {
         auditLog('SCHEMA_INVALID', `equipment name invalid for slot ${eq.slot}`);
         throw new Error('Equipment name must be a string ≤64 chars');
       }
@@ -123,11 +123,11 @@ function validateInventoryJson(raw) {
       auditLog('SCHEMA_INVALID', `item.id not a finite number: ${JSON.stringify(item.id)}`);
       throw new Error('Item id must be a finite number');
     }
-    if (typeof item.name !== 'string') {
+    if (item.name !== undefined && typeof item.name !== 'string') {
       auditLog('SCHEMA_INVALID', `item.name not a string for id=${item.id}`);
       throw new Error('Item name must be a string');
     }
-    if (item.name.length > 64) {
+    if (typeof item.name === 'string' && item.name.length > 64) {
       auditLog('SCHEMA_INVALID', `item.name too long (${item.name.length}) for id=${item.id}`);
       throw new Error(`Item name too long: "${item.name.slice(0, 20)}…"`);
     }
