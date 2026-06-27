@@ -22,6 +22,7 @@ local state = {
     maptrack = false,
     frame    = 0,
     scan_at  = 0,
+    last_pos = { x = nil, y = nil, zone = nil },
 }
 
 -- windower.addon_path ends with backslash (confirmed from local battlemod.lua)
@@ -257,18 +258,24 @@ windower.register_event('prerender', function()
         do_scan(true)
     end
 
-    -- Live map position (~4× per second)
-    if state.maptrack and state.frame % 15 == 0 then
+    -- Live map position: check ~2x/sec, write only when player moved > 0.5 yalms.
+    if state.maptrack and state.frame % 30 == 0 then
         local p = windower.ffxi.get_player()
         if p then
             -- VERIFY: get_mob_by_index gives world position in Windower
             local mob  = windower.ffxi.get_mob_by_index(p.index)
             local zone = windower.ffxi.get_info().zone
             if mob then
-                write_file(PATH_POS, string.format(
-                    '{"x":%.4f,"y":%.4f,"z":%.4f,"zone_id":%d}',
-                    mob.x or 0, mob.y or 0, mob.z or 0, zone or 0
-                ))
+                local x, y = mob.x or 0, mob.y or 0
+                local lp = state.last_pos
+                if lp.zone ~= zone or lp.x == nil
+                    or math.abs(x - lp.x) >= 0.5 or math.abs(y - lp.y) >= 0.5 then
+                    lp.zone = zone; lp.x = x; lp.y = y
+                    write_file(PATH_POS, string.format(
+                        '{"x":%.4f,"y":%.4f,"z":%.4f,"zone_id":%d}',
+                        x, y, mob.z or 0, zone or 0
+                    ))
+                end
             end
         end
     end

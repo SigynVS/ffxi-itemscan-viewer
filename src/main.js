@@ -2,6 +2,7 @@
 
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const fs = require('fs');
+const net = require('net');
 const path = require('path');
 
 const {
@@ -65,19 +66,26 @@ function defaultAddonDir() {
 }
 
 let addonDir = loadSettings().addonDir || defaultAddonDir();
-let INVENTORY_PATH, POSITION_PATH, ADDON_CONFIG_PATH;
+const PORT = 51234;
+
+let INVENTORY_PATH, ADDON_CONFIG_PATH;
 function updatePaths() {
   INVENTORY_PATH = path.join(addonDir, 'inventory.json');
-  POSITION_PATH = path.join(addonDir, 'position.json');
   ADDON_CONFIG_PATH = path.join(addonDir, 'itemscan_config.json');
 }
 updatePaths();
 
 let mainWindow = null;
-let liveAmbuscade = null; // cached from bg-wiki, refreshed on launch
-let watchDebounce = null;
-let lastMapName = null; // so the map image is only re-read on zone change
-let lastImageMissing = false; // keep retrying if the PNG wasn't found yet
+let liveAmbuscade = null;
+let lastMapName = null;
+let lastImageMissing = false;
+
+// Per-character state. Each multibox instance connects as a separate socket.
+const characterRaw  = new Map(); // charName → validated inventory object (for re-enrichment)
+const characterData = new Map(); // charName → enriched inventory object
+const charPositions = new Map(); // charName → last position object
+const sockToChar    = new Map(); // socket → charName
+let   activeChar    = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -102,33 +110,71 @@ function createWindow() {
   // if (!app.isPackaged) mainWindow.webContents.openDevTools();
 }
 
-// Reads, parses, and enriches inventory.json, then pushes it to the renderer.
-async function pushInventory() {
-  if (mainWindow === null) {
+function pushCharList() {
+  if (mainWindow) mainWindow.webContents.send('characters:update', {
+    list: [...characterData.keys()],
+    active: activeChar,
+  });
+}
+
+function pushActiveInventory() {
+  if (!mainWindow) return;
+  if (!activeChar || !characterData.has(activeChar)) {
+    mainWindow.webContents.send('inventory:error', { path: INVENTORY_PATH, message: 'Waiting for addon to connect…' });
     return;
   }
+  mainWindow.webContents.send('inventory:update', characterData.get(activeChar));
+}
+
+function pushActivePosition() {
+  if (!activeChar) return;
+  const pos = charPositions.get(activeChar);
+  if (pos) pushPosition(pos);
+}
+
+// Loads all inventory_CharName.json cache files from addonDir on startup.
+// Falls back to legacy inventory.json so existing users aren't broken.
+function loadCachedCharacters() {
+  characterRaw.clear();
+  characterData.clear();
+  activeChar = null;
+  let loaded = 0;
   try {
-    checkFileSize(INVENTORY_PATH);
-    const raw = fs.readFileSync(INVENTORY_PATH, 'utf8');
-    const data = validateInventoryJson(raw);
-    const enriched = enrichInventory(data, liveAmbuscade);
-    mainWindow.webContents.send('inventory:update', enriched);
-  } catch (err) {
-    mainWindow.webContents.send('inventory:error', {
-      path: INVENTORY_PATH,
-      message: err.message
-    });
+    const files = fs.readdirSync(addonDir)
+      .filter(f => /^inventory_[^/\\]+\.json$/.test(f));
+    for (const file of files) {
+      try {
+        const filePath = path.join(addonDir, file);
+        checkFileSize(filePath);
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const validated = validateInventoryJson(raw);
+        const charName = validated.character || 'Unknown';
+        characterRaw.set(charName, validated);
+        characterData.set(charName, enrichInventory(validated, liveAmbuscade));
+        if (!activeChar) activeChar = charName;
+        loaded++;
+      } catch (e) { /* skip malformed */ }
+    }
+  } catch (e) { /* addonDir may not exist yet */ }
+  // Fallback: legacy single-character inventory.json
+  if (loaded === 0) {
+    try {
+      checkFileSize(INVENTORY_PATH);
+      const raw = fs.readFileSync(INVENTORY_PATH, 'utf8');
+      const validated = validateInventoryJson(raw);
+      const charName = validated.character || 'Unknown';
+      characterRaw.set(charName, validated);
+      characterData.set(charName, enrichInventory(validated, liveAmbuscade));
+      activeChar = charName;
+    } catch (e) { /* no cache at all — wait for addon */ }
   }
 }
 
-// Reads position.json, resolves zone calibration + dot position, and pushes to
-// the renderer. The map image is only re-read (and sent) when the zone changes.
-function pushPosition() {
-  if (mainWindow === null) {
-    return;
-  }
+// Resolves zone calibration + dot position from a pos object and pushes to
+// the renderer. Called by the TCP server when the Lua addon sends a position update.
+function pushPosition(pos) {
+  if (mainWindow === null || !pos) return;
   try {
-    const pos = JSON.parse(fs.readFileSync(POSITION_PATH, 'utf8'));
     const m = getZoneMap(pos.zone, pos);
     const payload = { zone: pos.zone, hasCalibration: Boolean(m), mapsDir: MAPS_DIR };
     if (m) {
@@ -137,42 +183,18 @@ function pushPosition() {
       if (m.file !== lastMapName || lastImageMissing) {
         lastMapName = m.file;
         const img = mapImageDataUrl(m.file);
-        lastImageMissing = (img === null); // retry next tick until the file appears
+        lastImageMissing = (img === null);
         payload.imageChanged = true;
-        payload.image = img; // null if the pack lacks it
+        payload.image = img;
       }
     } else {
       lastMapName = null;
     }
     mainWindow.webContents.send('position:update', payload);
-  } catch (err) {
-    // No position.json yet (map tracking off / not in-game) — ignore.
-  }
+  } catch (err) { /* ignore malformed position data */ }
 }
 
-// Watches the addon's output dir for inventory.json. position.json is polled
-// instead (below), since fs.watch is unreliable for a file rewritten 4x/sec.
-let dirWatcher = null;
-function watchInventory() {
-  if (dirWatcher) {
-    try { dirWatcher.close(); } catch (err) { /* ignore */ }
-    dirWatcher = null;
-  }
-  const dir = path.dirname(INVENTORY_PATH);
-  const invBase = path.basename(INVENTORY_PATH);
-  try {
-    dirWatcher = fs.watch(dir, (eventType, filename) => {
-      if (filename === invBase) {
-        clearTimeout(watchDebounce);
-        watchDebounce = setTimeout(pushInventory, 250);
-      }
-    });
-  } catch (err) {
-    // Directory may not exist yet; the renderer will show the error state.
-  }
-}
-
-// Re-points the app at a new Ashita addon folder, persists it, and re-watches.
+// Re-points the app at a new addon folder, persists it, and reloads cached data.
 function setAddonDir(dir) {
   addonDir = dir;
   updatePaths();
@@ -181,10 +203,82 @@ function setAddonDir(dir) {
   saveSettings(s);
   lastMapName = null;
   lastImageMissing = false;
-  watchInventory();
-  pushInventory();
-  pushPosition();
+  loadCachedCharacters();
+  pushActiveInventory();
+  pushCharList();
 }
+
+// TCP server that receives data from the Lua addon over a localhost socket.
+// Protocol: single-char type prefix + raw JSON + newline.
+//   I{...}\n  — inventory payload (same schema as inventory.json)
+//   P{...}\n  — position payload { zone, x, y, z, heading }
+function startTcpServer() {
+  const server = net.createServer((sock) => {
+    auditLog('LUA_CONNECT', `${sock.remoteAddress}:${sock.remotePort}`);
+    let buf = '';
+    sock.on('data', (chunk) => {
+      buf += chunk.toString();
+      let nl;
+      while ((nl = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, nl);
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        const type = line[0];
+        const payload = line.slice(1);
+        if (type === 'I') {
+          try {
+            const validated = validateInventoryJson(payload);
+            const enriched = enrichInventory(validated, liveAmbuscade);
+            const charName = validated.character || 'Unknown';
+            characterRaw.set(charName, validated);
+            characterData.set(charName, enriched);
+            sockToChar.set(sock, charName);
+            if (!activeChar) activeChar = charName;
+            // Write per-character cache file
+            const safe = charName.replace(/[^a-zA-Z0-9]/g, '_');
+            fs.writeFileSync(path.join(addonDir, `inventory_${safe}.json`), payload);
+            auditLog('INVENTORY_RECV', `char=${charName} items=${validated.items ? validated.items.length : '?'}`);
+            pushCharList();
+            if (mainWindow && charName === activeChar) mainWindow.webContents.send('inventory:update', enriched);
+          } catch (err) {
+            auditLog('INVENTORY_ERR', err.message);
+            if (mainWindow) mainWindow.webContents.send('inventory:error', { path: 'socket', message: err.message });
+          }
+        } else if (type === 'P') {
+          try {
+            const pos = JSON.parse(payload);
+            const charName = sockToChar.get(sock);
+            if (charName) {
+              charPositions.set(charName, pos);
+              if (charName === activeChar) pushPosition(pos);
+            }
+          } catch (e) { /* ignore */ }
+        }
+      }
+    });
+    sock.on('close', () => {
+      const charName = sockToChar.get(sock);
+      sockToChar.delete(sock);
+      auditLog('LUA_DISCONNECT', charName || '');
+      pushCharList();
+    });
+    sock.on('error', () => {});
+  });
+  server.listen(PORT, '127.0.0.1', () => {
+    auditLog('TCP_SERVER', `listening on 127.0.0.1:${PORT}`);
+  });
+  server.on('error', (err) => auditLog('TCP_SERVER_ERR', err.message));
+}
+
+// Switches the active character and pushes their data to the renderer.
+ipcMain.handle('character:select', (_event, charName) => {
+  if (!characterData.has(charName)) return activeChar;
+  activeChar = charName;
+  pushActiveInventory();
+  pushActivePosition();
+  pushCharList();
+  return activeChar;
+});
 
 // Renderer asks for a live FFXIAH price for one item id.
 ipcMain.handle('price:fetch', async (_event, itemId) => {
@@ -317,19 +411,22 @@ ipcMain.handle('open:external', (_event, url) => {
 app.whenReady().then(() => {
   auditLog('APP_START', `v${app.getVersion()} pid=${process.pid}`);
   createWindow();
-  watchInventory();
-  // Push as soon as the window is ready (liveAmbuscade may still be null here).
+  startTcpServer();
+  // Load cached inventory.json on startup so the UI isn't blank while waiting
+  // for the Lua addon to connect and send a fresh scan.
   mainWindow.webContents.once('did-finish-load', () => {
-    pushInventory();
-    pushPosition();
+    loadCachedCharacters();
+    pushActiveInventory();
+    pushCharList();
   });
-  // Fetch live Ambuscade data in parallel; re-push when it arrives.
+  // Fetch live Ambuscade data in parallel; re-enrich all cached characters when it arrives.
   fetchAmbuscadeData().then((data) => {
     liveAmbuscade = data;
-    if (mainWindow) pushInventory();
+    for (const [charName, raw] of characterRaw) {
+      characterData.set(charName, enrichInventory(raw, liveAmbuscade));
+    }
+    pushActiveInventory();
   }).catch(() => {});
-  // Poll position.json ~3x/sec for the live map dot (reliable vs fs.watch).
-  setInterval(pushPosition, 300);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

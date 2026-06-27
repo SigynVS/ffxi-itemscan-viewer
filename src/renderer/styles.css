@@ -538,6 +538,20 @@ tbody tr:nth-child(even) { background: var(--row-alt); }
 }
 .equip-tooltip.visible { opacity: 1; }
 
+/* ── Character selector ──────────────────────────────────────────────────── */
+.char-selector-wrap { display: flex; align-items: center; margin-right: 8px; }
+.char-select {
+  background: #1a1a1f;
+  color: var(--accent);
+  border: 1px solid var(--accent-soft);
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+}
+.char-select:hover { border-color: var(--accent); }
+
 /* ── Feedback button ─────────────────────────────────────────────────────── */
 .feedback-btn {
   margin-left: auto;

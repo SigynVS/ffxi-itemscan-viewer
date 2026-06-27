@@ -21,7 +21,8 @@ addon.desc    = 'Exports full inventory to inventory.json for an external viewer
 
 require 'common';
 
-local json = require 'json';
+local json    = require 'json';
+local socket  = require 'socket';
 
 -- Container id -> friendly name. Mirrors invmon's container table.
 local container_names = T{
@@ -51,11 +52,41 @@ local itemscan = T{
     missions = {},   -- storyline -> raw current-mission stage, from packet 0x056
     quests = {},     -- area -> { current = {ids}, completed = {ids} }, from 0x056
     quest_raw = nil, -- raw bytes of the last 0x0070 packet, for offset verification
-    maptrack = false,-- when true, write position.json each ~15 frames for the map
+    maptrack = false,-- when true, write position.json only on meaningful movement
     frame = 0,       -- frame counter for throttling position writes
     scan_at = 0,     -- frame to run a debounced auto-scan (0 = none pending)
     last_config = {},-- last-seen values from itemscan_config.json (app-driven)
+    last_pos = { x = nil, y = nil, zone = nil }, -- last sent position for delta check
+    sock = nil,      -- LuaSocket TCP client connected to the viewer
+    sock_retry = 0,  -- frame at which to attempt next reconnect
 };
+
+-- Connects to the viewer's TCP server (localhost:51234). Non-blocking so FFXI
+-- doesn't freeze if the viewer isn't running.
+local function connect_viewer()
+    local s = socket.tcp();
+    s:settimeout(0);
+    local ok, err = s:connect('127.0.0.1', 51234);
+    if (ok == 1 or err == 'already connected') then
+        itemscan.sock = s;
+        print('[itemscan] Connected to viewer.');
+    else
+        s:close();
+    end
+end
+
+-- Sends a prefixed JSON message to the viewer. 'I' = inventory, 'P' = position.
+-- Marks the socket nil on error so the reconnect logic in d3d_present takes over.
+local function send_to_viewer(prefix, json_str)
+    if (itemscan.sock == nil) then return; end
+    local ok, err = itemscan.sock:send(prefix .. json_str .. '\n');
+    if (not ok) then
+        itemscan.sock:close();
+        itemscan.sock = nil;
+        itemscan.sock_retry = itemscan.frame + 360; -- retry in ~6s
+        print('[itemscan] Viewer disconnected.');
+    end
+end
 
 -- Settings the external app can drive, persisted in itemscan_config.json beside
 -- this addon. The app writes the file; the addon reads it on load and polls it,
@@ -335,17 +366,21 @@ local function do_scan(silent)
         items         = collect_inventory(),
     };
 
+    local raw = json.encode(payload);
+
+    -- Write to disk as a persistent cache (loaded by the viewer on startup).
     local path = ('%s\\inventory.json'):fmt(addon.path);
     local file = io.open(path, 'w');
-    if (file == nil) then
-        print(('[itemscan] ERROR: could not open %s for writing.'):fmt(path));
-        return;
+    if (file ~= nil) then
+        file:write(raw);
+        file:close();
     end
-    file:write(json.encode(payload));
-    file:close();
+
+    -- Send live update to the viewer over the socket.
+    send_to_viewer('I', raw);
 
     if (not silent) then
-        print(('[itemscan] Wrote %d items to inventory.json'):fmt(#payload.items));
+        print(('[itemscan] Scanned %d items.'):fmt(#payload.items));
     end
 end
 
@@ -362,19 +397,25 @@ local function write_position()
     local idx = party:GetMemberTargetIndex(0);
     if (idx == nil or idx == 0) then return; end
 
-    local payload = T{
-        zone      = party:GetMemberZone(0),
-        x         = ent:GetLocalPositionX(idx),
-        y         = ent:GetLocalPositionY(idx),
-        z         = ent:GetLocalPositionZ(idx),
-        heading   = ent:GetLocalPositionYaw(idx),
-        timestamp = os.time(),
-    };
+    local zone = party:GetMemberZone(0);
+    local x    = ent:GetLocalPositionX(idx);
+    local y    = ent:GetLocalPositionY(idx);
 
-    local file = io.open(('%s\\position.json'):fmt(addon.path), 'w');
-    if (file == nil) then return; end
-    file:write(json.encode(payload));
-    file:close();
+    -- Only send when zone changed or player moved more than 0.5 yalms.
+    local lp = itemscan.last_pos;
+    if (lp.zone == zone and lp.x ~= nil
+        and math.abs(x - lp.x) < 0.5 and math.abs(y - lp.y) < 0.5) then
+        return;
+    end
+    lp.zone = zone; lp.x = x; lp.y = y;
+
+    send_to_viewer('P', json.encode(T{
+        zone    = zone,
+        x       = x,
+        y       = y,
+        z       = ent:GetLocalPositionZ(idx),
+        heading = ent:GetLocalPositionYaw(idx),
+    }));
 end
 
 ashita.events.register('command', 'command_cb', function (e)
@@ -509,15 +550,21 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
     end
 end);
 
--- Read app-driven settings on load.
+-- Read app-driven settings on load; connect to viewer; queue an auto-scan.
 ashita.events.register('load', 'load_cb', function ()
     poll_config();
+    connect_viewer();
+    itemscan.scan_at = itemscan.frame + 180; -- ~3s debounce so game state is ready
 end);
 
--- Render loop: poll the app-driven config (~every 2s) and, when map tracking is
--- on, write position.json (~4x/sec at 60fps).
+-- Render loop: reconnect to viewer if needed, poll config, send position updates.
 ashita.events.register('d3d_present', 'present_cb', function ()
     itemscan.frame = itemscan.frame + 1;
+    -- Reconnect to the viewer if the socket dropped (retries every ~6s).
+    if (itemscan.sock == nil and itemscan.frame >= itemscan.sock_retry) then
+        itemscan.sock_retry = itemscan.frame + 360;
+        connect_viewer();
+    end
     if (itemscan.frame % 120 == 0) then
         poll_config();
     end
@@ -527,7 +574,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         itemscan.scan_at = 0;
         do_scan(true);
     end
-    if (itemscan.maptrack and (itemscan.frame % 15 == 0)) then
+    if (itemscan.maptrack and (itemscan.frame % 30 == 0)) then
         write_position();
     end
 end);

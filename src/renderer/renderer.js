@@ -1159,6 +1159,21 @@ openMapsFolderEl.addEventListener('click', async () => {
 
 initMapsDirHint();
 
+// ── Character selector ────────────────────────────────────────────────────────
+const charSelectorWrap = document.getElementById('charSelectorWrap');
+const charSelect       = document.getElementById('charSelect');
+
+window.itemscan.onCharacters(({ list, active }) => {
+  charSelect.innerHTML = list
+    .map(n => `<option value="${n}"${n === active ? ' selected' : ''}>${n}</option>`)
+    .join('');
+  charSelectorWrap.style.display = list.length > 1 ? '' : 'none';
+});
+
+charSelect.addEventListener('change', () => {
+  window.itemscan.selectCharacter(charSelect.value);
+});
+
 // ── Feedback modal ────────────────────────────────────────────────────────────
 const feedbackOverlay  = document.getElementById('feedbackOverlay');
 const feedbackBtn      = document.getElementById('feedbackBtn');
