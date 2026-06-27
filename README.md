@@ -1,6 +1,6 @@
 # FFXI Item Scan
 
-A second-monitor companion app for **Final Fantasy XI**. An in-game Lua addon exports your character's data to a local file; a desktop Electron app reads it and displays everything live on your other screen — no alt-tabbing required.
+A second-monitor companion app for **Final Fantasy XI**. An in-game Lua addon streams your character's inventory, position, and progression data directly to the app over a local TCP socket — no files written, no polling, no alt-tabbing required.
 
 Supports both **Ashita v4** and **Windower** addon frameworks.
 
@@ -121,12 +121,13 @@ If you update the Lua file while FFXI is running, click **Reload addon** in the 
 
 | Command | Effect |
 |---------|--------|
-| `/itemscan` | Scan now and write inventory.json |
+| `/itemscan` | Scan now and send data to the viewer |
 | `/itemscan auto` | Toggle auto-rescan on inventory/equipment changes |
 | `/itemscan map` | Toggle live position tracking for the Map tab |
 | `/itemscan missions` | Print current mission stages to chat |
 | `/itemscan roe` | Print active RoE objectives to chat |
 | `/itemscan quests` | Print active quest counts by area to chat |
+| `/itemscan dumpresources` | Rebuild the item name database (run once after a game update adds new items) |
 
 > **Windower users:** prefix commands with `//` — e.g. `//itemscan auto`
 
