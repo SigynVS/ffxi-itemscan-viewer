@@ -366,18 +366,8 @@ local function do_scan(silent)
         items         = collect_inventory(),
     };
 
-    local raw = json.encode(payload);
-
-    -- Write to disk as a persistent cache (loaded by the viewer on startup).
-    local path = ('%s\\inventory.json'):fmt(addon.path);
-    local file = io.open(path, 'w');
-    if (file ~= nil) then
-        file:write(raw);
-        file:close();
-    end
-
-    -- Send live update to the viewer over the socket.
-    send_to_viewer('I', raw);
+    -- Send to viewer over socket. No file write -- app requires client to be running.
+    send_to_viewer('I', json.encode(payload));
 
     if (not silent) then
         print(('[itemscan] Scanned %d items.'):fmt(#payload.items));

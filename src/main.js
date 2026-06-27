@@ -120,7 +120,7 @@ function pushCharList() {
 function pushActiveInventory() {
   if (!mainWindow) return;
   if (!activeChar || !characterData.has(activeChar)) {
-    mainWindow.webContents.send('inventory:error', { path: INVENTORY_PATH, message: 'Waiting for addon to connect…' });
+    mainWindow.webContents.send('inventory:error', { path: '', message: 'Waiting for addon to connect…' });
     return;
   }
   mainWindow.webContents.send('inventory:update', characterData.get(activeChar));
@@ -130,44 +130,6 @@ function pushActivePosition() {
   if (!activeChar) return;
   const pos = charPositions.get(activeChar);
   if (pos) pushPosition(pos);
-}
-
-// Loads all inventory_CharName.json cache files from addonDir on startup.
-// Falls back to legacy inventory.json so existing users aren't broken.
-function loadCachedCharacters() {
-  characterRaw.clear();
-  characterData.clear();
-  activeChar = null;
-  let loaded = 0;
-  try {
-    const files = fs.readdirSync(addonDir)
-      .filter(f => /^inventory_[^/\\]+\.json$/.test(f));
-    for (const file of files) {
-      try {
-        const filePath = path.join(addonDir, file);
-        checkFileSize(filePath);
-        const raw = fs.readFileSync(filePath, 'utf8');
-        const validated = validateInventoryJson(raw);
-        const charName = validated.character || 'Unknown';
-        characterRaw.set(charName, validated);
-        characterData.set(charName, enrichInventory(validated, liveAmbuscade));
-        if (!activeChar) activeChar = charName;
-        loaded++;
-      } catch (e) { /* skip malformed */ }
-    }
-  } catch (e) { /* addonDir may not exist yet */ }
-  // Fallback: legacy single-character inventory.json
-  if (loaded === 0) {
-    try {
-      checkFileSize(INVENTORY_PATH);
-      const raw = fs.readFileSync(INVENTORY_PATH, 'utf8');
-      const validated = validateInventoryJson(raw);
-      const charName = validated.character || 'Unknown';
-      characterRaw.set(charName, validated);
-      characterData.set(charName, enrichInventory(validated, liveAmbuscade));
-      activeChar = charName;
-    } catch (e) { /* no cache at all — wait for addon */ }
-  }
 }
 
 // Resolves zone calibration + dot position from a pos object and pushes to
@@ -194,7 +156,7 @@ function pushPosition(pos) {
   } catch (err) { /* ignore malformed position data */ }
 }
 
-// Re-points the app at a new addon folder, persists it, and reloads cached data.
+// Re-points the app at a new addon folder and persists it.
 function setAddonDir(dir) {
   addonDir = dir;
   updatePaths();
@@ -203,9 +165,6 @@ function setAddonDir(dir) {
   saveSettings(s);
   lastMapName = null;
   lastImageMissing = false;
-  loadCachedCharacters();
-  pushActiveInventory();
-  pushCharList();
 }
 
 // TCP server that receives data from the Lua addon over a localhost socket.
@@ -234,9 +193,6 @@ function startTcpServer() {
             characterData.set(charName, enriched);
             sockToChar.set(sock, charName);
             if (!activeChar) activeChar = charName;
-            // Write per-character cache file
-            const safe = charName.replace(/[^a-zA-Z0-9]/g, '_');
-            fs.writeFileSync(path.join(addonDir, `inventory_${safe}.json`), payload);
             auditLog('INVENTORY_RECV', `char=${charName} items=${validated.items ? validated.items.length : '?'}`);
             pushCharList();
             if (mainWindow && charName === activeChar) mainWindow.webContents.send('inventory:update', enriched);
@@ -412,16 +368,12 @@ app.whenReady().then(() => {
   auditLog('APP_START', `v${app.getVersion()} pid=${process.pid}`);
   createWindow();
   startTcpServer();
-  // Load cached inventory.json on startup so the UI isn't blank while waiting
-  // for the Lua addon to connect and send a fresh scan.
   mainWindow.webContents.once('did-finish-load', () => {
-    loadCachedCharacters();
-    pushActiveInventory();
-    pushCharList();
+    pushActiveInventory(); // shows "waiting for addon" until socket connects
   });
-  // Fetch live Ambuscade data in parallel; re-enrich all cached characters when it arrives.
   fetchAmbuscadeData().then((data) => {
     liveAmbuscade = data;
+    // Re-enrich any characters already connected when ambuscade data arrives.
     for (const [charName, raw] of characterRaw) {
       characterData.set(charName, enrichInventory(raw, liveAmbuscade));
     }
