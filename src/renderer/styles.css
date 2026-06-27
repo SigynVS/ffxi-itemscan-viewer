@@ -126,7 +126,9 @@ tbody tr:nth-child(odd) { background: var(--row); }
 tbody tr:nth-child(even) { background: var(--row-alt); }
 
 .name { font-weight: 600; }
-.desc { color: var(--muted); white-space: pre-wrap; max-width: 320px; }
+.desc { color: var(--muted); }
+.desc-clip { display: inline-block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+body.hide-desc .col-desc, body.hide-desc .desc { display: none; }
 .where { color: var(--muted); }
 .gil { color: var(--accent); }
 .ah { color: var(--green); }

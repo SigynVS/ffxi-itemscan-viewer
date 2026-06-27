@@ -163,7 +163,7 @@ function render() {
       <td class="name">${escapeHtml(it.name)}</td>
       <td class="num">${it.count}</td>
       <td class="where">${escapeHtml(it.container_name)}</td>
-      <td class="desc">${escapeHtml(it.description)}</td>
+      <td class="desc"><span class="desc-clip" title="${escapeHtml(it.description)}">${escapeHtml(it.description)}</span></td>
       <td class="num">${vendor}</td>
       <td class="num">${ahCell(it)}</td>
       <td>${gobbie}</td>
@@ -1075,6 +1075,15 @@ speedEl.addEventListener('change', () => { applySpeed(speedEl.value); localStora
 speedCfgEl.addEventListener('change', () => { applySpeed(speedCfgEl.value); localStorage.setItem('speed', speedCfgEl.value); });
 applySpeed(localStorage.getItem('speed') || speedEl.value);
 
+const showDescEl = document.getElementById('showDesc');
+function applyShowDesc(on) { document.body.classList.toggle('hide-desc', !on); }
+showDescEl.checked = localStorage.getItem('showDesc') !== '0';
+applyShowDesc(showDescEl.checked);
+showDescEl.addEventListener('change', () => {
+  applyShowDesc(showDescEl.checked);
+  localStorage.setItem('showDesc', showDescEl.checked ? '1' : '0');
+});
+
 // ── In-game config toggles ───────────────────────────────────────
 
 const cfgAutoEl = document.getElementById('cfgAuto');
@@ -1115,6 +1124,10 @@ if (savedTab !== 'items') activateTab(savedTab);
 
 document.getElementById('openMapsCfg').addEventListener('click', () => {
   window.itemscan.openMapsFolder();
+});
+
+document.getElementById('browseMapsDir').addEventListener('click', async () => {
+  try { await window.itemscan.browseMapsDir(); refreshConfigInfo(); } catch (_) { /* ignore */ }
 });
 
 async function refreshConfigInfo() {

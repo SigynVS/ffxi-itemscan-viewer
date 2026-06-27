@@ -21,8 +21,11 @@ const zoneOffset    = load('atlas/zoneOffset.json');
 const zonesWithMaps = load('atlas/zonesWithMaps.json');
 
 // User-supplied map images live here (the remapster wiki pack, unzipped).
-// Override with ITEMSCAN_MAPS. Not bundled (too large + licensing).
-const MAPS_DIR = process.env.ITEMSCAN_MAPS || path.join(app.getPath('userData'), 'maps');
+// Starts from ITEMSCAN_MAPS or the per-user app-data folder; the Config tab can
+// override it at runtime via setMapsDir (persisted in app_settings.json).
+let mapsDir = process.env.ITEMSCAN_MAPS || path.join(app.getPath('userData'), 'maps');
+function getMapsDir() { return mapsDir; }
+function setMapsDir(dir) { if (dir) { mapsDir = dir; } }
 
 function inRange(pos, r) {
   return pos.x >= r.x1 && pos.x <= r.x2
@@ -71,11 +74,11 @@ function toPercent(cal, h, v) {
 // Reads a zone's map PNG from MAPS_DIR as a data URL, or null if not present.
 function mapImageDataUrl(mapName) {
   try {
-    const buf = fs.readFileSync(path.join(MAPS_DIR, mapName + '.png'));
+    const buf = fs.readFileSync(path.join(mapsDir, mapName + '.png'));
     return 'data:image/png;base64,' + buf.toString('base64');
   } catch (err) {
     return null;
   }
 }
 
-module.exports = { getZone, getZoneMap, toPercent, mapImageDataUrl, MAPS_DIR };
+module.exports = { getZone, getZoneMap, toPercent, mapImageDataUrl, getMapsDir, setMapsDir };

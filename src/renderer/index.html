@@ -43,6 +43,7 @@
       <label class="chk"><input id="onlyVendor" type="checkbox" /> Has value</label>
       <label class="chk"><input id="onlyGobbie" type="checkbox" /> Gobbiebag</label>
       <label class="chk"><input id="onlyQuest" type="checkbox" /> Quest item</label>
+      <label class="chk"><input id="showDesc" type="checkbox" checked /> Description</label>
       <label class="chk">Speed
         <select id="speed" title="Parallel price fetches. Higher = faster but harder on FFXIAH.">
           <option value="1">1×</option>
@@ -61,7 +62,7 @@
             <th class="sortable" data-key="name">Item</th>
             <th class="sortable num" data-key="count">Qty</th>
             <th class="sortable" data-key="container_name">Where</th>
-            <th>What it is</th>
+            <th class="col-desc">What it is</th>
             <th class="sortable num" data-key="vendorPrice">Vendor</th>
             <th class="sortable num" data-key="ah">AH median</th>
             <th class="sortable" data-key="gobbiebag">Gobbiebag</th>
@@ -233,7 +234,10 @@
       <div class="cfg-row"><span>Map images</span>
         <button id="openMapsCfg" type="button">Open maps folder</button>
       </div>
-      <div class="cfg-row"><span>Maps folder</span><code id="cfgMapsDir" class="cfg-path"></code></div>
+      <div class="cfg-row"><span>Maps folder</span>
+        <button id="browseMapsDir" type="button">Browse…</button>
+        <code id="cfgMapsDir" class="cfg-path"></code>
+      </div>
       <div class="cfg-row"><span>App data folder</span><code id="cfgUserData" class="cfg-path"></code></div>
     </div>
 

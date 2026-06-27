@@ -31,7 +31,7 @@ const { fetchAmbuscadeData } = require('./lib/ambuscade-fetch');
 const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
 const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
-const { getZoneMap, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapdata');
+const { getZoneMap, toPercent, mapImageDataUrl, getMapsDir, setMapsDir } = require('./lib/mapdata');
 const feedbackCfg = (() => { try { return require('./lib/feedback.config'); } catch { return { webhookUrl: null }; } })();
 
 // Persisted app settings (the configurable Ashita addon folder, etc.).
@@ -73,7 +73,9 @@ function defaultAddonDir() {
   return candidates[0];
 }
 
-let addonDir = loadSettings().addonDir || defaultAddonDir();
+const _initSettings = loadSettings();
+let addonDir = _initSettings.addonDir || defaultAddonDir();
+if (_initSettings.mapsDir) { try { setMapsDir(validateAddonPath(_initSettings.mapsDir)); } catch (_) { /* ignore bad saved maps path */ } }
 const PORT = 51234;
 
 let ADDON_CONFIG_PATH;
@@ -145,7 +147,7 @@ function pushPosition(pos) {
   if (mainWindow === null || !pos) return;
   try {
     const m = getZoneMap(pos.zone, pos);
-    const payload = { zone: pos.zone, hasCalibration: Boolean(m), mapsDir: MAPS_DIR };
+    const payload = { zone: pos.zone, hasCalibration: Boolean(m), mapsDir: getMapsDir() };
     if (m) {
       payload.mapName = m.file;
       payload.dot = toPercent(m, pos.x, pos.y);
@@ -287,20 +289,20 @@ ipcMain.handle('mission:setLabel', (_event, { character, key, name }) =>
 // Opens (creating if needed) the maps folder so the user can drop the pack in.
 ipcMain.handle('map:openFolder', () => {
   try {
-    fs.mkdirSync(MAPS_DIR, { recursive: true });
+    fs.mkdirSync(getMapsDir(), { recursive: true });
   } catch (err) { /* ignore */ }
-  shell.openPath(MAPS_DIR);
-  return MAPS_DIR;
+  shell.openPath(getMapsDir());
+  return getMapsDir();
 });
-ipcMain.handle('map:dir', () => MAPS_DIR);
+ipcMain.handle('map:dir', () => getMapsDir());
 
 ipcMain.handle('map:hasMaps', () => {
-  try { return fs.readdirSync(MAPS_DIR).some(f => f.endsWith('.png')); }
+  try { return fs.readdirSync(getMapsDir()).some(f => f.endsWith('.png')); }
   catch { return false; }
 });
 
 // Downloads the remapster dats map pack (~209 MB, covers all zones) and extracts
-// all PNGs flat into MAPS_DIR. Sends map:download-progress events during download.
+// all PNGs flat into the maps folder. Sends map:download-progress events during download.
 function downloadFollowRedirects(url, destPath, onProgress) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
@@ -343,7 +345,7 @@ ipcMain.handle('map:download', async () => {
   const MAP_URL = 'https://github.com/AkadenTK/remapster_maps/releases/download/map_pack/remapster-dats-pack-1-2-1024.zip';
   const zipPath = path.join(app.getPath('temp'), 'remapster-maps.zip');
   try {
-    fs.mkdirSync(MAPS_DIR, { recursive: true });
+    fs.mkdirSync(getMapsDir(), { recursive: true });
     await downloadFollowRedirects(MAP_URL, zipPath, (received, total) => {
       if (mainWindow) mainWindow.webContents.send('map:download-progress', {
         phase: 'download',
@@ -353,7 +355,7 @@ ipcMain.handle('map:download', async () => {
       });
     });
     if (mainWindow) mainWindow.webContents.send('map:download-progress', { phase: 'extract', pct: 100 });
-    await extractMapZip(zipPath, MAPS_DIR);
+    await extractMapZip(zipPath, getMapsDir());
     auditLog('MAP_DOWNLOAD', 'remapster maps installed');
     return { ok: true };
   } catch (err) {
@@ -385,7 +387,7 @@ ipcMain.handle('addon:setConfig', (_event, cfg) => {
 // Config tab: paths for display.
 ipcMain.handle('config:info', () => ({
   addonDir: addonDir,
-  mapsDir: MAPS_DIR,
+  mapsDir: getMapsDir(),
   userData: app.getPath('userData')
 }));
 
@@ -403,6 +405,27 @@ ipcMain.handle('config:browseAddonDir', async () => {
     auditLog('PATH_REJECTED', err.message);
   }
   return addonDir;
+});
+
+// Configurable maps folder (where the remapster PNG pack lives). Lets users
+// point at maps they already have instead of copying into the app-data folder.
+ipcMain.handle('config:browseMapsDir', async () => {
+  const res = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select your maps folder',
+    defaultPath: getMapsDir(),
+    properties: ['openDirectory']
+  });
+  if (res.canceled || !res.filePaths.length) { return getMapsDir(); }
+  try {
+    const dir = validateAddonPath(res.filePaths[0]);
+    setMapsDir(dir);
+    const s = loadSettings();
+    s.mapsDir = dir;
+    saveSettings(s);
+  } catch (err) {
+    auditLog('PATH_REJECTED', err.message);
+  }
+  return getMapsDir();
 });
 
 // Writes reload_flag.txt to the addon folder; the Lua addon polls this every ~2s
