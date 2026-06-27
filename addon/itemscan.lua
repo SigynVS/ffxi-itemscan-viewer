@@ -55,7 +55,7 @@ local container_names = T{
 };
 
 local itemscan = T{
-    auto = false,
+    auto = true,
     roe_active = {}, -- objective id -> progress, captured from packet 0x111
     missions = {},   -- storyline -> raw current-mission stage, from packet 0x056
     quests = {},     -- area -> { current = {ids}, completed = {ids} }, from 0x056
