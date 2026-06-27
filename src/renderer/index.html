@@ -14,6 +14,7 @@
       <span id="meta" class="meta">Waiting for inventory.json…</span>
     </div>
     <div id="stats" class="stats"></div>
+    <button id="feedbackBtn" class="feedback-btn" title="Send feedback or report a bug">Feedback</button>
   </header>
 
   <div id="error" class="error hidden"></div>
@@ -272,6 +273,42 @@
       <div class="detail-prev-next">
         <button class="pn-btn pn-prev" id="detailPrev">&#8592; Prev</button>
         <button class="pn-btn pn-next" id="detailNext">Next &#8594;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback modal -->
+  <div id="feedbackOverlay" class="feedback-overlay hidden">
+    <div class="feedback-modal">
+      <div class="feedback-modal-head">
+        <span>Send Feedback</span>
+        <button id="feedbackClose" class="feedback-close">&times;</button>
+      </div>
+      <div class="feedback-modal-body">
+        <label class="fb-label">Type
+          <select id="fbType">
+            <option value="Bug">Bug Report</option>
+            <option value="Feature">Feature Request</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label class="fb-label">Framework
+          <select id="fbFramework">
+            <option value="Ashita4">Ashita4</option>
+            <option value="Windower">Windower</option>
+            <option value="Not sure">Not sure</option>
+          </select>
+        </label>
+        <label class="fb-label">Title
+          <input id="fbTitle" type="text" placeholder="Short summary…" maxlength="100" />
+        </label>
+        <label class="fb-label">Description
+          <textarea id="fbDescription" rows="5" placeholder="Describe the issue or idea in detail…" maxlength="1800"></textarea>
+        </label>
+        <div class="fb-actions">
+          <span id="fbStatus" class="fb-status"></span>
+          <button id="fbSubmit" class="fb-submit">Send</button>
+        </div>
       </div>
     </div>
   </div>

@@ -29,5 +29,6 @@ contextBridge.exposeInMainWorld('itemscan', {
   getMissionLabels: (character) => ipcRenderer.invoke('mission:labels', character),
   setMissionLabel: (character, key, name) =>
     ipcRenderer.invoke('mission:setLabel', { character, key, name }),
-  reloadAddon: () => ipcRenderer.invoke('addon:reload')
+  reloadAddon: () => ipcRenderer.invoke('addon:reload'),
+  sendFeedback: (data) => ipcRenderer.invoke('feedback:send', data)
 });

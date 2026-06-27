@@ -28,6 +28,7 @@ const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
 const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
 const { getZoneMap, toPercent, mapImageDataUrl, MAPS_DIR } = require('./lib/mapdata');
+const feedbackCfg = (() => { try { return require('./lib/feedback.config'); } catch { return { webhookUrl: null }; } })();
 
 // Persisted app settings (the configurable Ashita addon folder, etc.).
 function settingsPath() { return path.join(app.getPath('userData'), 'app_settings.json'); }
@@ -270,6 +271,37 @@ ipcMain.handle('addon:reload', () => {
   } catch (err) {
     auditLog('ADDON_RELOAD_FAIL', err.message);
     return false;
+  }
+});
+
+// Sends feedback to Discord via webhook. Webhook URL lives in gitignored feedback.config.js.
+ipcMain.handle('feedback:send', async (_event, { type, title, description, framework }) => {
+  if (!feedbackCfg.webhookUrl) return { ok: false, error: 'No webhook configured' };
+  const colors = { Bug: 15548997, Feature: 5793266, Other: 10066613 };
+  const body = {
+    embeds: [{
+      title: `[${type}] ${String(title).slice(0, 100)}`,
+      description: String(description).slice(0, 1800) || '(no description)',
+      color: colors[type] || 10066613,
+      fields: [
+        { name: 'Type',        value: String(type),      inline: true },
+        { name: 'Framework',   value: String(framework), inline: true },
+        { name: 'App Version', value: app.getVersion(),  inline: true },
+      ],
+      timestamp: new Date().toISOString(),
+    }],
+  };
+  try {
+    const res = await fetch(feedbackCfg.webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    auditLog('FEEDBACK_SENT', `type=${type} ok=${res.ok}`);
+    return { ok: res.ok };
+  } catch (err) {
+    auditLog('FEEDBACK_FAIL', err.message);
+    return { ok: false, error: err.message };
   }
 });
 

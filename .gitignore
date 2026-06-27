@@ -1,4 +1,5 @@
 node_modules/
+src/lib/feedback.config.js
 dist/
 data/price_cache.json
 *.log

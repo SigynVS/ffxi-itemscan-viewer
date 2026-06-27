@@ -1158,3 +1158,50 @@ openMapsFolderEl.addEventListener('click', async () => {
 });
 
 initMapsDirHint();
+
+// ── Feedback modal ────────────────────────────────────────────────────────────
+const feedbackOverlay  = document.getElementById('feedbackOverlay');
+const feedbackBtn      = document.getElementById('feedbackBtn');
+const feedbackClose    = document.getElementById('feedbackClose');
+const fbType           = document.getElementById('fbType');
+const fbFramework      = document.getElementById('fbFramework');
+const fbTitle          = document.getElementById('fbTitle');
+const fbDescription    = document.getElementById('fbDescription');
+const fbSubmit         = document.getElementById('fbSubmit');
+const fbStatus         = document.getElementById('fbStatus');
+
+feedbackBtn.addEventListener('click', () => {
+  feedbackOverlay.classList.remove('hidden');
+  fbTitle.focus();
+});
+
+feedbackClose.addEventListener('click', () => feedbackOverlay.classList.add('hidden'));
+
+feedbackOverlay.addEventListener('click', (e) => {
+  if (e.target === feedbackOverlay) feedbackOverlay.classList.add('hidden');
+});
+
+fbSubmit.addEventListener('click', async () => {
+  const title = fbTitle.value.trim();
+  if (!title) { fbStatus.textContent = 'Please enter a title.'; fbStatus.className = 'fb-status err'; return; }
+  fbSubmit.disabled = true;
+  fbStatus.textContent = 'Sending…';
+  fbStatus.className = 'fb-status';
+  const result = await window.itemscan.sendFeedback({
+    type:        fbType.value,
+    framework:   fbFramework.value,
+    title,
+    description: fbDescription.value.trim(),
+  });
+  if (result.ok) {
+    fbStatus.textContent = 'Sent! Thank you.';
+    fbStatus.className = 'fb-status ok';
+    fbTitle.value = '';
+    fbDescription.value = '';
+    setTimeout(() => feedbackOverlay.classList.add('hidden'), 1500);
+  } else {
+    fbStatus.textContent = 'Failed to send — check your connection.';
+    fbStatus.className = 'fb-status err';
+  }
+  fbSubmit.disabled = false;
+});
