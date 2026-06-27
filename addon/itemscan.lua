@@ -69,13 +69,19 @@ local itemscan = T{
     sock_retry = 0,  -- frame at which to attempt next reconnect
 };
 
--- Connects to the viewer's TCP server (localhost:51234). Non-blocking so FFXI
--- doesn't freeze if the viewer isn't running.
+-- Connects to the viewer's TCP server (localhost:51234). A short blocking
+-- connect is correct here: on localhost it returns immediately (success, or
+-- "connection refused" when the viewer is closed), so FFXI never stalls. The
+-- socket is then switched to non-blocking so sends never block the render
+-- thread. The old code used a non-blocking connect, which returns "timeout"
+-- (the normal in-progress status) and was wrongly treated as failure, so the
+-- socket was closed on every attempt and inventory was never delivered.
 local function connect_viewer()
     local s = socket.tcp();
-    s:settimeout(0);
-    local ok, err = s:connect('127.0.0.1', 51234);
-    if (ok == 1 or err == 'already connected') then
+    s:settimeout(2);
+    local ok = s:connect('127.0.0.1', 51234);
+    if (ok == 1) then
+        s:settimeout(0);
         itemscan.sock = s;
         print('[itemscan] Connected to viewer.');
     else
@@ -162,7 +168,7 @@ local quest_types = {
 
 -- Quest flag payload is assumed to start right after the 4-byte header, i.e.
 -- 1-based byte 5, running up to the Type selector at 0x25 (32 bytes = 256 bits).
--- This start offset is UNVERIFIED — confirm with /itemscan questdump in-game.
+-- This start offset is UNVERIFIED, confirm with /itemscan questdump in-game.
 local QUEST_BITS_START = 0x05;
 local QUEST_BIT_COUNT  = 256;
 
