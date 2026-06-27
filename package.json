@@ -1,6 +1,6 @@
 {
   "name": "ffxi-itemscan-viewer",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "Second-monitor viewer for the Ashita itemscan addon. Reads inventory.json and enriches each item with description, vendor price, live FFXIAH price, gobbiebag flag, and quest turn-ins.",
   "main": "src/main.js",
   "author": "Brian Justice",

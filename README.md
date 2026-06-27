@@ -4,6 +4,16 @@ A second-monitor companion app for **Final Fantasy XI**. An in-game Lua addon ex
 
 Supports both **Ashita v4** and **Windower** addon frameworks.
 
+> **Beta** — This is an early release. Please report bugs using the **Feedback** button in the app or by joining the [SigynVS Labs Discord](DISCORD_INVITE_PLACEHOLDER).
+
+---
+
+## Community & Feedback
+
+Join the **[SigynVS Labs Discord](DISCORD_INVITE_PLACEHOLDER)** to report bugs, request features, or help test the Windower port.
+
+You can also use the built-in **Feedback** button (top-right of the app) to send a report directly — no Discord account needed.
+
 ---
 
 ## What it shows
@@ -129,6 +139,25 @@ Map images are not bundled (large, third-party assets). To enable the live posit
 1. Download **`remapster-wiki-pack-1-1024.zip`** (and pack-2 for full coverage) from the [remapster_maps releases](https://github.com/AkadenTK/remapster_maps/releases).
 2. In the app, open the **Map** tab → **Open maps folder** and unzip the PNGs directly into it.
 3. Enable **Map tracking** via the Config tab or `/itemscan map` in-game.
+
+---
+
+## Known issues & beta notes
+
+### Windower — needs in-game verification
+
+The Windower port is new and has three areas that need testing. If you're on Windower and something looks wrong, check these first and report via the Feedback button:
+
+| Area | What to test | What to report |
+|------|-------------|----------------|
+| **Job levels** | Open the Character tab — do all your job levels show correctly? | If they're all 0, report it |
+| **Equipment** | Does your equipped gear show on the Character tab? | If slots are empty when you have gear on, report which slots |
+| **Inventory bags** | Do items appear from all bags (Safe, Storage, Satchel etc.)? | If a bag is missing entirely, report which one |
+
+### All users
+- FFXIAH price lookups are throttled and cached 24h — they're not instant
+- Map dot requires the remapster PNG pack (not bundled) — see [Maps](#maps) section
+- Private server item IDs may differ from retail; some item names may show as Unknown
 
 ---
 
