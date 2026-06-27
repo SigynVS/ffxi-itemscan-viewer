@@ -85,8 +85,12 @@ const mapZoneEl = document.getElementById('mapZone');
 const mapImgEl = document.getElementById('mapImg');
 const mapDotEl = document.getElementById('mapDot');
 const mapMsgEl = document.getElementById('mapMsg');
-const openMapsFolderEl = document.getElementById('openMapsFolder');
-const mapDirHintEl = document.getElementById('mapDirHint');
+const openMapsFolderEl    = document.getElementById('openMapsFolder');
+const downloadMapsBtnEl   = document.getElementById('downloadMapsBtn');
+const mapDownloadWrapEl   = document.getElementById('mapDownloadWrap');
+const mapDownloadFillEl   = document.getElementById('mapDownloadFill');
+const mapDownloadLabelEl  = document.getElementById('mapDownloadLabel');
+const mapDirHintEl        = document.getElementById('mapDirHint');
 const roeListEl = document.getElementById('roeList');
 
 function gil(n) {
@@ -1154,6 +1158,38 @@ openMapsFolderEl.addEventListener('click', async () => {
   } catch (err) {
     mapMsgEl.textContent = 'Could not open maps folder: ' + err.message;
     mapMsgEl.style.display = '';
+  }
+});
+
+// Hide the download button if maps are already installed.
+window.itemscan.hasMaps().then(has => {
+  if (has) downloadMapsBtnEl.style.display = 'none';
+});
+
+window.itemscan.onMapProgress(({ phase, pct }) => {
+  mapDownloadWrapEl.style.display = '';
+  mapDownloadFillEl.style.width = pct + '%';
+  mapDownloadLabelEl.textContent = phase === 'extract' ? 'Extracting...' : `Downloading... ${pct}%`;
+});
+
+downloadMapsBtnEl.addEventListener('click', async () => {
+  downloadMapsBtnEl.disabled = true;
+  downloadMapsBtnEl.textContent = 'Downloading...';
+  mapDownloadWrapEl.style.display = '';
+  mapDownloadFillEl.style.width = '0%';
+  mapDownloadLabelEl.textContent = 'Starting download...';
+
+  const result = await window.itemscan.downloadMaps();
+
+  if (result.ok) {
+    mapDownloadFillEl.style.width = '100%';
+    mapDownloadLabelEl.textContent = 'Maps installed!';
+    downloadMapsBtnEl.textContent = 'Maps installed';
+    setTimeout(() => { mapDownloadWrapEl.style.display = 'none'; }, 3000);
+  } else {
+    mapDownloadLabelEl.textContent = 'Download failed — check your connection and try again.';
+    downloadMapsBtnEl.disabled = false;
+    downloadMapsBtnEl.textContent = 'Retry download';
   }
 });
 

@@ -2,8 +2,11 @@
 
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const fs = require('fs');
+const https = require('https');
+const http = require('http');
 const net = require('net');
 const path = require('path');
+const { execFile } = require('child_process');
 
 const {
   auditLog,
@@ -286,6 +289,76 @@ ipcMain.handle('map:openFolder', () => {
   return MAPS_DIR;
 });
 ipcMain.handle('map:dir', () => MAPS_DIR);
+
+ipcMain.handle('map:hasMaps', () => {
+  try { return fs.readdirSync(MAPS_DIR).some(f => f.endsWith('.png')); }
+  catch { return false; }
+});
+
+// Downloads the remapster dats map pack (~209 MB, covers all zones) and extracts
+// all PNGs flat into MAPS_DIR. Sends map:download-progress events during download.
+function downloadFollowRedirects(url, destPath, onProgress) {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith('https') ? https : http;
+    mod.get(url, (res) => {
+      if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307) {
+        return downloadFollowRedirects(res.headers.location, destPath, onProgress)
+          .then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+      const total = parseInt(res.headers['content-length'], 10) || 0;
+      let received = 0;
+      const file = fs.createWriteStream(destPath);
+      res.on('data', (chunk) => {
+        received += chunk.length;
+        if (onProgress) onProgress(received, total);
+      });
+      res.pipe(file);
+      file.on('finish', () => file.close(resolve));
+      file.on('error', (err) => { try { fs.unlinkSync(destPath); } catch {} reject(err); });
+    }).on('error', reject);
+  });
+}
+
+function extractMapZip(zipPath, mapsDir) {
+  return new Promise((resolve, reject) => {
+    const tempDir = zipPath + '_tmp';
+    const script = [
+      `New-Item -ItemType Directory -Force -Path '${tempDir}' | Out-Null`,
+      `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${tempDir}' -Force`,
+      `Get-ChildItem -Recurse -Path '${tempDir}' -Filter '*.png' | ForEach-Object { Move-Item -LiteralPath $_.FullName -Destination '${mapsDir}' -Force }`,
+      `Remove-Item -Recurse -Force '${tempDir}'`,
+    ].join('; ');
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script],
+      { timeout: 300000 },
+      (err) => { if (err) reject(err); else resolve(); });
+  });
+}
+
+ipcMain.handle('map:download', async () => {
+  const MAP_URL = 'https://github.com/AkadenTK/remapster_maps/releases/download/map_pack/remapster-dats-pack-1-2-1024.zip';
+  const zipPath = path.join(app.getPath('temp'), 'remapster-maps.zip');
+  try {
+    fs.mkdirSync(MAPS_DIR, { recursive: true });
+    await downloadFollowRedirects(MAP_URL, zipPath, (received, total) => {
+      if (mainWindow) mainWindow.webContents.send('map:download-progress', {
+        phase: 'download',
+        pct: total ? Math.round(received / total * 100) : 0,
+        received,
+        total,
+      });
+    });
+    if (mainWindow) mainWindow.webContents.send('map:download-progress', { phase: 'extract', pct: 100 });
+    await extractMapZip(zipPath, MAPS_DIR);
+    auditLog('MAP_DOWNLOAD', 'remapster maps installed');
+    return { ok: true };
+  } catch (err) {
+    auditLog('MAP_DOWNLOAD_ERR', err.message);
+    return { ok: false, error: err.message };
+  } finally {
+    try { fs.unlinkSync(zipPath); } catch {}
+  }
+});
 
 // Addon control: read/write itemscan_config.json (auto-scan, map tracking).
 ipcMain.handle('addon:getConfig', () => {

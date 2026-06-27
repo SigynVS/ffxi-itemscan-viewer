@@ -32,5 +32,8 @@ contextBridge.exposeInMainWorld('itemscan', {
   reloadAddon: () => ipcRenderer.invoke('addon:reload'),
   sendFeedback: (data) => ipcRenderer.invoke('feedback:send', data),
   onCharacters: (callback) => ipcRenderer.on('characters:update', (_event, data) => callback(data)),
-  selectCharacter: (name) => ipcRenderer.invoke('character:select', name)
+  selectCharacter: (name) => ipcRenderer.invoke('character:select', name),
+  hasMaps: () => ipcRenderer.invoke('map:hasMaps'),
+  downloadMaps: () => ipcRenderer.invoke('map:download'),
+  onMapProgress: (callback) => ipcRenderer.on('map:download-progress', (_event, data) => callback(data))
 });
