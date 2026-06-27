@@ -89,6 +89,7 @@ local function send_to_viewer(prefix, json_str)
     if (itemscan.sock == nil) then return; end
     local ok, err = itemscan.sock:send(prefix .. json_str .. '\n');
     if (not ok) then
+        if (err == 'timeout') then return; end -- send buffer full; skip this message
         itemscan.sock:close();
         itemscan.sock = nil;
         itemscan.sock_retry = itemscan.frame + 360; -- retry in ~6s
@@ -444,9 +445,10 @@ local function write_position()
     local idx = party:GetMemberTargetIndex(0);
     if (idx == nil or idx == 0) then return; end
 
-    local zone = party:GetMemberZone(0);
-    local x    = ent:GetLocalPositionX(idx);
-    local y    = ent:GetLocalPositionY(idx);
+    local zone      = party:GetMemberZone(0);
+    local charname  = party:GetMemberName(0) or 'Unknown';
+    local x         = ent:GetLocalPositionX(idx);
+    local y         = ent:GetLocalPositionY(idx);
 
     -- Only send when zone changed or player moved more than 0.5 yalms.
     local lp = itemscan.last_pos;
@@ -457,11 +459,12 @@ local function write_position()
     lp.zone = zone; lp.x = x; lp.y = y;
 
     send_to_viewer('P', json.encode(T{
-        zone    = zone,
-        x       = x,
-        y       = y,
-        z       = ent:GetLocalPositionZ(idx),
-        heading = ent:GetLocalPositionYaw(idx),
+        character = charname,
+        zone      = zone,
+        x         = x,
+        y         = y,
+        z         = ent:GetLocalPositionZ(idx),
+        heading   = ent:GetLocalPositionYaw(idx),
     }));
 end
 
@@ -565,7 +568,7 @@ ashita.events.register('command', 'command_cb', function (e)
         local rm = AshitaCore:GetResourceManager();
         local out = {};
         local count = 0;
-        print('[itemscan] Dumping item database, please wait...');
+        print('[itemscan] Dumping item database -- game will freeze briefly, this is normal.');
         for id = 1, 65535 do
             local res = rm:GetItemById(id);
             if (res ~= nil and res.Name ~= nil and res.Name[1] ~= nil and #res.Name[1] > 0) then

@@ -203,8 +203,10 @@ function startTcpServer() {
         } else if (type === 'P') {
           try {
             const pos = JSON.parse(payload);
-            const charName = sockToChar.get(sock);
+            // Use character name from payload so position works before first inventory scan.
+            const charName = pos.character || sockToChar.get(sock);
             if (charName) {
+              if (!sockToChar.has(sock)) sockToChar.set(sock, charName);
               charPositions.set(charName, pos);
               if (charName === activeChar) pushPosition(pos);
             }
@@ -215,8 +217,24 @@ function startTcpServer() {
     sock.on('close', () => {
       const charName = sockToChar.get(sock);
       sockToChar.delete(sock);
+      if (charName) {
+        characterRaw.delete(charName);
+        characterData.delete(charName);
+        charPositions.delete(charName);
+        if (activeChar === charName) {
+          activeChar = characterData.size > 0 ? [...characterData.keys()][0] : null;
+        }
+      }
       auditLog('LUA_DISCONNECT', charName || '');
       pushCharList();
+      if (mainWindow) {
+        if (activeChar) {
+          pushActiveInventory();
+          pushActivePosition();
+        } else {
+          mainWindow.webContents.send('inventory:error', { path: '', message: 'Waiting for addon to connect…' });
+        }
+      }
     });
     sock.on('error', () => {});
   });
