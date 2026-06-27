@@ -1,23 +1,23 @@
 --[[
-* itemscan - Inventory exporter addon for Ashita4
+* itemscan - Inventory addon for Ashita4
 *
-* Walks every inventory container, resolves each item's name and description
-* from the resource manager, and writes the result to inventory.json beside
-* this addon. A separate viewer program (Electron) watches that file and joins
-* it against bundled vendor-price / gobbiebag / quest datasets and live AH data.
+* Streams inventory, equipment, position, and progression data to the FFXI Item
+* Scan viewer app over a local TCP socket (localhost:51234). No files are written.
+* The app must be running for data to be received.
 *
-* This addon is intentionally "thin": it only exports raw inventory data.
 * All enrichment (prices, quest turn-ins, gobbiebag flags) happens in the viewer.
 *
 * Usage:
-*   /itemscan          - Scan now and write inventory.json
+*   /itemscan          - Scan now and send to viewer
 *   /itemscan auto     - Toggle auto-scan on inventory-change packets
+*   /itemscan map      - Toggle live position tracking
+*   /itemscan dumpresources - Rebuild item name database (run once, copy items.json to viewer data/)
 --]]
 
 addon.name    = 'itemscan';
 addon.author  = 'Brian Justice';
-addon.version = '0.1';
-addon.desc    = 'Exports full inventory to inventory.json for an external viewer.';
+addon.version = '0.1.0-beta.1';
+addon.desc    = 'Streams inventory and position data to the FFXI Item Scan viewer app.';
 
 require 'common';
 
@@ -353,7 +353,7 @@ local function collect_inventory()
 end
 
 --[[
-* Performs a scan and writes inventory.json beside this addon.
+* Performs a scan and sends the payload to the viewer over the TCP socket.
 --]]
 local function do_scan(silent)
     local party = AshitaCore:GetMemoryManager():GetParty();

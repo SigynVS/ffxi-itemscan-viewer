@@ -1122,7 +1122,6 @@ async function refreshConfigInfo() {
     const info = await window.itemscan.getConfigInfo();
     document.getElementById('cfgAddonDir').textContent = info.addonDir;
     document.getElementById('cfgMapsDir').textContent = info.mapsDir;
-    document.getElementById('cfgInvPath').textContent = info.inventoryPath;
     document.getElementById('cfgUserData').textContent = info.userData;
   } catch (_) { /* ignore */ }
 }

@@ -55,8 +55,8 @@ function saveSettings(s) {
   try { fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2)); } catch (err) { /* ignore */ }
 }
 
-// The folder where the itemscan addon writes inventory.json / position.json /
-// itemscan_config.json. Configurable so the app works wherever Ashita lives.
+// The folder where the itemscan addon lives. Configurable so the app works
+// wherever Ashita lives. Used for config file reads/writes and reload flag.
 function defaultAddonDir() {
   if (process.env.ITEMSCAN_PATH) { return path.dirname(process.env.ITEMSCAN_PATH); }
   const candidates = [
@@ -76,9 +76,8 @@ function defaultAddonDir() {
 let addonDir = loadSettings().addonDir || defaultAddonDir();
 const PORT = 51234;
 
-let INVENTORY_PATH, ADDON_CONFIG_PATH;
+let ADDON_CONFIG_PATH;
 function updatePaths() {
-  INVENTORY_PATH = path.join(addonDir, 'inventory.json');
   ADDON_CONFIG_PATH = path.join(addonDir, 'itemscan_config.json');
 }
 updatePaths();
@@ -385,7 +384,6 @@ ipcMain.handle('addon:setConfig', (_event, cfg) => {
 
 // Config tab: paths for display.
 ipcMain.handle('config:info', () => ({
-  inventoryPath: INVENTORY_PATH,
   addonDir: addonDir,
   mapsDir: MAPS_DIR,
   userData: app.getPath('userData')
