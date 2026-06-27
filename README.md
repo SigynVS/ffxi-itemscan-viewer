@@ -89,25 +89,11 @@ Grab the latest **`FFXI Item Scan Setup.exe`** from the [Releases](../../release
 
 ---
 
-### Step 3 — Point the app at your addon folder
+### Step 3 — Launch the app and play
 
-On first launch, open the **Config** tab → **Ashita itemscan folder** → **Browse…** and select:
+That's it. The app auto-detects standard Ashita and Windower install paths and auto-scan is on by default — data updates the moment your inventory changes.
 
-- **Ashita:** `<Ashita>\addons\itemscan\`
-- **Windower:** `<Windower>\addons\itemscan\`
-
-The app defaults to `C:\Ashita4\addons\itemscan` if it exists.
-
----
-
-## Auto-scan (recommended)
-
-Enable **Auto-scan** in the Config tab (or run `/itemscan auto` in-game once). The addon will then re-export your data automatically whenever:
-
-- Your inventory changes (items picked up, traded, moved)
-- You swap any piece of equipment
-- A Records of Eminence objective updates
-- The addon loads or reloads
+If the app can't find your addon folder (non-standard install location), open the **Config** tab → **Ashita itemscan folder** → **Browse…** and point it at `<Ashita>\addons\itemscan\`.
 
 ---
 
@@ -135,11 +121,10 @@ If you update the Lua file while FFXI is running, click **Reload addon** in the 
 
 ## Maps
 
-Map images are not bundled (large, third-party assets). To enable the live position dot:
+Map images are not bundled (large third-party assets). To enable the live position dot:
 
-1. Download **`remapster-wiki-pack-1-1024.zip`** (and pack-2 for full coverage) from the [remapster_maps releases](https://github.com/AkadenTK/remapster_maps/releases).
-2. In the app, open the **Map** tab → **Open maps folder** and unzip the PNGs directly into it.
-3. Enable **Map tracking** via the Config tab or `/itemscan map` in-game.
+1. Open the **Map** tab and click **Download map pack** — the app downloads and installs everything automatically (~209 MB).
+2. Enable **Map tracking** via the Config tab or `/itemscan map` in-game.
 
 ---
 

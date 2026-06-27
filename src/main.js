@@ -62,7 +62,12 @@ function defaultAddonDir() {
   const candidates = [
     'C:\\Ashita4\\addons\\itemscan',
     'C:\\Ashita\\addons\\itemscan',
-    'D:\\Ashita4\\addons\\itemscan'
+    'D:\\Ashita4\\addons\\itemscan',
+    'D:\\Ashita\\addons\\itemscan',
+    'E:\\Ashita4\\addons\\itemscan',
+    'E:\\Ashita\\addons\\itemscan',
+    'C:\\Windower\\addons\\itemscan',
+    'D:\\Windower\\addons\\itemscan',
   ];
   for (const c of candidates) { if (fs.existsSync(c)) { return c; } }
   return candidates[0];
