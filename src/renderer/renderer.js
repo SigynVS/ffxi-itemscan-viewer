@@ -913,6 +913,9 @@ window.itemscan.onPosition((p) => {
   if (p.dot && mapImgEl.style.display !== 'none') {
     mapDotEl.style.left = p.dot.xPct + '%';
     mapDotEl.style.top = p.dot.yPct + '%';
+    const heading = typeof p.heading === 'number' ? p.heading : 0;
+    const deg = (heading * 180 / Math.PI) + 90;
+    mapDotEl.style.transform = `rotate(${deg}deg)`;
     mapDotEl.classList.remove('hidden');
   } else {
     mapDotEl.classList.add('hidden');

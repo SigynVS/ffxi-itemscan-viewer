@@ -2,8 +2,10 @@
 * itemscan - Inventory addon for Ashita4
 *
 * Streams inventory, equipment, position, and progression data to the FFXI Item
-* Scan viewer app over a local TCP socket (localhost:51234). No files are written.
-* The app must be running for data to be received.
+* Scan viewer app over a local TCP socket (localhost:51234). Inventory and
+* position go over the socket, not to disk; small control files (settings and a
+* reload signal) are still written beside this addon. The app must be running
+* for live data to be received.
 *
 * All enrichment (prices, quest turn-ins, gobbiebag flags) happens in the viewer.
 *

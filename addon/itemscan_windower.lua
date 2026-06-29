@@ -1,10 +1,8 @@
 --[[
-    itemscan (Windower port): NOT WORKING IN THIS BETA.
+    itemscan (Windower port): legacy path, not supported for current use.
 
-    This addon still uses the old file-based design (writes inventory.json) and
-    is incompatible with the current app, which only accepts a TCP socket
-    connection. It must be rewritten to open a TCP socket like the Ashita addon
-    (see addon/itemscan.lua). Do not load or ship this yet.
+    This addon uses the older file-based design and is kept here as a reference
+    port. The Ashita addon is the supported path for the current app.
 
     Stale original notes:
     Writes inventory.json to the addon folder; the FFXI Item Scan Viewer
