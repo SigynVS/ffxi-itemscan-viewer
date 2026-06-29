@@ -27,9 +27,14 @@ const USER_AGENT = 'ffxi-itemscan-viewer/0.1 (personal inventory tool)';
 const BASE_DELAY_MS = 300;
 const JITTER_MS = 500;
 
-// How many fetches may be in flight at once. Tunable from the UI; kept modest
-// by default to stay gentle on FFXIAH (1 = original serial behaviour).
-let concurrency = 3;
+// Circuit breaker: when FFXIAH pushes back (429 too-many-requests, or 403), stop
+// hitting it for this long. If the site says slow down, we actually slow down.
+const COOLDOWN_MS = 60 * 1000;
+let cooldownUntil = 0; // no request starts before this timestamp
+
+// How many fetches may be in flight at once. Tunable from the UI; defaults to 1
+// (fully serial) to stay as gentle as possible on FFXIAH out of the box.
+let concurrency = 1;
 
 // Median price appears in the page's embedded data; this matches the common
 // "median":<number> field. Fragile by nature — see note above.
@@ -69,6 +74,12 @@ async function fetchPrice(itemId) {
   const res = await fetch(`https://www.ffxiah.com/item/${itemId}`, {
     headers: { 'User-Agent': USER_AGENT }
   });
+  // FFXIAH signalling "slow down" (429) or "go away" (403): trip the breaker so
+  // every queued lane waits out the cooldown instead of piling on more requests.
+  if (res.status === 429 || res.status === 403) {
+    cooldownUntil = Date.now() + COOLDOWN_MS;
+    throw new Error(`FFXIAH rate-limited (HTTP ${res.status}); backing off ${COOLDOWN_MS / 1000}s`);
+  }
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
@@ -89,6 +100,10 @@ function pump() {
 // One worker lane: jittered delay, fetch, cache, resolve, then pull the next.
 async function runTask({ itemId, hit, resolve }) {
   await sleep(BASE_DELAY_MS + Math.random() * JITTER_MS);
+  // Honor an active back-off window before touching FFXIAH again.
+  if (Date.now() < cooldownUntil) {
+    await sleep(cooldownUntil - Date.now());
+  }
   const store = loadCache();
   try {
     const price = await fetchPrice(itemId);
