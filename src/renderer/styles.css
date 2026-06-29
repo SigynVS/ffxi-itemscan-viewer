@@ -220,13 +220,15 @@ body.hide-desc .col-desc, body.hide-desc .desc { display: none; }
 .map-inner img { max-width: 100%; max-height: 70vh; border-radius: 2px; display: block; }
 .map-dot {
   position: absolute;
-  width: 24px;
-  height: 24px;
-  margin: -12px 0 0 -12px;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
   pointer-events: none;
   z-index: 5;
   transform-origin: 50% 50%;
 }
+/* Single clear arrowhead marks position (its center) and facing (its point).
+   No separate center dot, which was covering the arrow and hiding direction. */
 .map-dot::before {
   content: '';
   position: absolute;
@@ -235,22 +237,10 @@ body.hide-desc .col-desc, body.hide-desc .desc { display: none; }
   transform: translate(-50%, -50%);
   width: 0;
   height: 0;
-  border-top: 7px solid transparent;
-  border-bottom: 7px solid transparent;
-  border-left: 14px solid var(--crimson);
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.85));
-}
-.map-dot::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #f2e6cf;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 19px solid var(--crimson);
+  filter: drop-shadow(0 0 1px #2a1a0e) drop-shadow(0 0 2px rgba(0,0,0,0.9));
 }
 .map-msg { color: var(--muted); padding: 24px; text-align: center; }
 .map-msg code { color: var(--accent); font-family: var(--mono); }

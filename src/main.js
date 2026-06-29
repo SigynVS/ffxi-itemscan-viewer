@@ -147,7 +147,7 @@ function pushPosition(pos) {
   if (mainWindow === null || !pos) return;
   try {
     const m = getZoneMap(pos.zone, pos);
-    const payload = { zone: pos.zone, hasCalibration: Boolean(m), mapsDir: getMapsDir() };
+    const payload = { zone: pos.zone, hasCalibration: Boolean(m), mapsDir: getMapsDir(), heading: pos.heading };
     if (m) {
       payload.mapName = m.file;
       payload.dot = toPercent(m, pos.x, pos.y);
