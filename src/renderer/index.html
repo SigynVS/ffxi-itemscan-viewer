@@ -91,8 +91,13 @@
       <div class="map-download-bar"><div id="mapDownloadFill" class="map-download-fill"></div></div>
       <span id="mapDownloadLabel" class="map-download-label">Downloading...</span>
     </div>
+    <div class="map-ctrls">
+      <label class="chk"><input id="mapCenter" type="checkbox" checked /> Center on me</label>
+      <button id="mapReset" type="button" class="map-open-btn">Reset view</button>
+      <span class="map-ctrl-hint">scroll to zoom, drag to pan</span>
+    </div>
     <div id="mapView" class="map-view">
-      <div class="map-inner">
+      <div id="mapStage" class="map-stage">
         <img id="mapImg" alt="zone map" style="display:none" />
         <div id="mapDot" class="map-dot hidden" aria-hidden="true"></div>
       </div>

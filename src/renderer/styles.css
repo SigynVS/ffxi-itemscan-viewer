@@ -215,9 +215,23 @@ body.hide-desc .col-desc, body.hide-desc .desc { display: none; }
 .map-download-bar { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; max-width: 300px; }
 .map-download-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
 .map-download-label { font-size: 12px; color: var(--muted); }
-.map-view { margin-top: 10px; text-align: center; }
-.map-inner { position: relative; display: inline-block; }
-.map-inner img { max-width: 100%; max-height: 70vh; border-radius: 2px; display: block; }
+.map-ctrls { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.map-ctrl-hint { color: var(--muted); font-size: 12px; }
+.map-view {
+  position: relative;
+  margin-top: 8px;
+  height: 70vh;
+  overflow: hidden;
+  background: var(--row);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: grab;
+  user-select: none;
+}
+.map-view.grabbing { cursor: grabbing; }
+.map-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+.map-stage img { display: block; width: 100%; height: 100%; border-radius: 2px; }
+.map-view .map-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 80%; }
 .map-dot {
   position: absolute;
   width: 22px;

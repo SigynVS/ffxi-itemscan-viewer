@@ -668,6 +668,20 @@ function renderDetailContent() {
 
 // ── AH price fetching ────────────────────────────────────────────
 
+// Coalesce re-renders during a bulk price fetch: render at most once per
+// ~200ms instead of once per item. With a few hundred items this turns
+// hundreds of full table rebuilds into a handful.
+let _priceRenderTimer = null;
+function schedulePriceRender() {
+  if (_priceRenderTimer) return;
+  _priceRenderTimer = setTimeout(() => {
+    _priceRenderTimer = null;
+    render();
+    renderStats();
+    if (detailIndex >= 0) renderDetailContent();
+  }, 200);
+}
+
 function fetchAllPrices() {
   getPricesEl.disabled = true;
   const targets = allItems.filter(passesFilters);
@@ -680,13 +694,15 @@ function fetchAllPrices() {
       .finally(() => {
         done++;
         getPricesEl.textContent = `Fetching ${done}/${targets.length}…`;
-        render();
-        renderStats();
-        if (detailIndex >= 0) renderDetailContent();
+        schedulePriceRender();
       })
   );
 
   Promise.all(jobs).then(() => {
+    if (_priceRenderTimer) { clearTimeout(_priceRenderTimer); _priceRenderTimer = null; }
+    render();
+    renderStats();
+    if (detailIndex >= 0) renderDetailContent();
     getPricesEl.textContent = 'Fetch AH prices';
     getPricesEl.disabled = false;
   });
@@ -913,13 +929,97 @@ window.itemscan.onPosition((p) => {
   if (p.dot && mapImgEl.style.display !== 'none') {
     mapDotEl.style.left = p.dot.xPct + '%';
     mapDotEl.style.top = p.dot.yPct + '%';
+    mapDotPct = { x: p.dot.xPct, y: p.dot.yPct };
     const heading = typeof p.heading === 'number' ? p.heading : 0;
-    const deg = (heading * 180 / Math.PI);
-    mapDotEl.style.transform = `rotate(${deg}deg)`;
+    mapHeadingDeg = heading * 180 / Math.PI;
     mapDotEl.classList.remove('hidden');
+    if (mapCenterEl && mapCenterEl.checked) { centerOnPlayer(); } else { applyMapTransform(); }
   } else {
     mapDotEl.classList.add('hidden');
   }
+});
+
+// ----- Map pan / zoom / center-on-player -----
+const mapViewEl = document.getElementById('mapView');
+const mapStageEl = document.getElementById('mapStage');
+const mapCenterEl = document.getElementById('mapCenter');
+const mapResetEl = document.getElementById('mapReset');
+let mapZoom = 1, mapPanX = 0, mapPanY = 0;
+let mapHeadingDeg = 0;
+let mapDotPct = null;
+let mapImgW = 0, mapImgH = 0;
+if (mapCenterEl) mapCenterEl.checked = localStorage.getItem('mapCenter') !== '0';
+
+function clampZoom(z) { return Math.max(0.1, Math.min(8, z)); }
+
+function applyMapTransform() {
+  mapStageEl.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapZoom})`;
+  // counter-scale the arrow so it stays a constant on-screen size at any zoom
+  mapDotEl.style.transform = `rotate(${mapHeadingDeg}deg) scale(${1 / mapZoom})`;
+}
+
+function fitMap() {
+  if (!mapImgW || !mapImgH) return;
+  const vw = mapViewEl.clientWidth, vh = mapViewEl.clientHeight;
+  mapZoom = clampZoom(Math.min(vw / mapImgW, vh / mapImgH));
+  mapPanX = (vw - mapImgW * mapZoom) / 2;
+  mapPanY = (vh - mapImgH * mapZoom) / 2;
+  applyMapTransform();
+}
+
+function centerOnPlayer() {
+  if (!mapDotPct || !mapImgW || !mapImgH) { applyMapTransform(); return; }
+  const vw = mapViewEl.clientWidth, vh = mapViewEl.clientHeight;
+  mapPanX = vw / 2 - (mapDotPct.x / 100 * mapImgW) * mapZoom;
+  mapPanY = vh / 2 - (mapDotPct.y / 100 * mapImgH) * mapZoom;
+  applyMapTransform();
+}
+
+mapImgEl.addEventListener('load', () => {
+  mapImgW = mapImgEl.naturalWidth || mapImgEl.width;
+  mapImgH = mapImgEl.naturalHeight || mapImgEl.height;
+  mapStageEl.style.width = mapImgW + 'px';
+  mapStageEl.style.height = mapImgH + 'px';
+  if (mapCenterEl && mapCenterEl.checked) { centerOnPlayer(); } else { fitMap(); }
+});
+
+mapViewEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (!mapImgW) return;
+  const newZoom = clampZoom(mapZoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+  if (mapCenterEl && mapCenterEl.checked && mapDotPct) {
+    mapZoom = newZoom;
+    centerOnPlayer();
+  } else {
+    const rect = mapViewEl.getBoundingClientRect();
+    const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+    const lx = (cx - mapPanX) / mapZoom, ly = (cy - mapPanY) / mapZoom;
+    mapZoom = newZoom;
+    mapPanX = cx - lx * mapZoom;
+    mapPanY = cy - ly * mapZoom;
+    applyMapTransform();
+  }
+}, { passive: false });
+
+let mapDragging = false, mapDragX = 0, mapDragY = 0;
+mapViewEl.addEventListener('mousedown', (e) => {
+  mapDragging = true; mapDragX = e.clientX; mapDragY = e.clientY;
+  mapViewEl.classList.add('grabbing');
+});
+window.addEventListener('mousemove', (e) => {
+  if (!mapDragging) return;
+  mapPanX += e.clientX - mapDragX;
+  mapPanY += e.clientY - mapDragY;
+  mapDragX = e.clientX; mapDragY = e.clientY;
+  if (mapCenterEl && mapCenterEl.checked) { mapCenterEl.checked = false; localStorage.setItem('mapCenter', '0'); }
+  applyMapTransform();
+});
+window.addEventListener('mouseup', () => { mapDragging = false; mapViewEl.classList.remove('grabbing'); });
+
+if (mapResetEl) mapResetEl.addEventListener('click', () => fitMap());
+if (mapCenterEl) mapCenterEl.addEventListener('change', () => {
+  localStorage.setItem('mapCenter', mapCenterEl.checked ? '1' : '0');
+  if (mapCenterEl.checked) centerOnPlayer();
 });
 
 window.itemscan.onError((data) => {
@@ -1062,7 +1162,11 @@ document.getElementById('roeSearch').addEventListener('input', (e) => {
 
 // ── Items filter controls ────────────────────────────────────────
 
-searchEl.addEventListener('input', render);
+let _searchTimer = null;
+searchEl.addEventListener('input', () => {
+  if (_searchTimer) clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(render, 120);
+});
 onlyVendorEl.addEventListener('change', render);
 onlyGobbieEl.addEventListener('change', render);
 onlyQuestEl.addEventListener('change', render);
