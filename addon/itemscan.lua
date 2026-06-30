@@ -71,21 +71,22 @@ local itemscan = T{
     sock_retry = 0,  -- frame at which to attempt next reconnect
 };
 
--- Connects to the viewer's TCP server (localhost:51234). A short blocking
--- connect is correct here: on localhost it returns immediately (success, or
--- "connection refused" when the viewer is closed), so FFXI never stalls. The
--- socket is then switched to non-blocking so sends never block the render
--- thread. The old code used a non-blocking connect, which returns "timeout"
--- (the normal in-progress status) and was wrongly treated as failure, so the
--- socket was closed on every attempt and inventory was never delivered.
+-- Connects to the viewer's TCP server (localhost:51234). Fully non-blocking so
+-- it can never stall the render thread. A non-blocking connect returns "timeout"
+-- while the TCP handshake is still in progress; that is success-in-progress, not
+-- failure, so the socket is kept. (The original bug closed it on "timeout", which
+-- is why inventory was never delivered.) On localhost the handshake usually
+-- completes instantly and returns 1; if it is still pending, the socket is kept
+-- and the send path below skips on "timeout" until it becomes writable.
 local function connect_viewer()
     local s = socket.tcp();
-    s:settimeout(2);
-    local ok = s:connect('127.0.0.1', 51234);
+    s:settimeout(0);
+    local ok, err = s:connect('127.0.0.1', 51234);
     if (ok == 1) then
-        s:settimeout(0);
         itemscan.sock = s;
         print('[itemscan] Connected to viewer.');
+    elseif (err == 'timeout' or err == 'already connected' or err == 'Operation already in progress') then
+        itemscan.sock = s; -- handshake in progress; sends start once it is writable
     else
         s:close();
     end
@@ -573,29 +574,43 @@ ashita.events.register('command', 'command_cb', function (e)
     -- Dumps all known item names and descriptions to items.json beside this addon.
     -- Copy that file to the viewer's data/ folder then restart the app.
     if (#args >= 2 and args[2]:lower() == 'dumpresources') then
+        -- Sweep all 65535 item ids, but in per-frame chunks via ashita.tasks so
+        -- the game thread never freezes. A single 65k synchronous loop could
+        -- stall the client long enough to disconnect you, which at a bad moment
+        -- (trade, synthesis, an event) can cost items. This stays responsive.
         local rm = AshitaCore:GetResourceManager();
         local out = {};
         local count = 0;
-        print('[itemscan] Dumping item database -- game will freeze briefly, this is normal.');
-        for id = 1, 65535 do
-            local res = rm:GetItemById(id);
-            if (res ~= nil and res.Name ~= nil and res.Name[1] ~= nil and #res.Name[1] > 0) then
-                out[tostring(id)] = {
-                    name = sanitize(res.Name[1]),
-                    desc = (res.Description ~= nil and res.Description[1] ~= nil)
-                        and sanitize(res.Description[1]) or '',
-                };
-                count = count + 1;
+        local next_id = 1;
+        local CHUNK = 1500;  -- ids processed per frame
+        local CHUNKS = 45;   -- 45 * 1500 = 67500, covers all 65535
+        print('[itemscan] Dumping item database in the background, this takes a moment...');
+        ashita.tasks.repeatingf(0, CHUNKS, 1, function ()
+            if (next_id > 65535) then return; end
+            local stop = math.min(next_id + CHUNK - 1, 65535);
+            for id = next_id, stop do
+                local res = rm:GetItemById(id);
+                if (res ~= nil and res.Name ~= nil and res.Name[1] ~= nil and #res.Name[1] > 0) then
+                    out[tostring(id)] = {
+                        name = sanitize(res.Name[1]),
+                        desc = (res.Description ~= nil and res.Description[1] ~= nil)
+                            and sanitize(res.Description[1]) or '',
+                    };
+                    count = count + 1;
+                end
             end
-        end
-        local f = io.open(('%s\\items.json'):fmt(addon.path), 'w');
-        if (f ~= nil) then
-            f:write(json.encode(out));
-            f:close();
-            print(('[itemscan] items.json written (%d items). Copy to viewer data/ folder and restart the app.'):fmt(count));
-        else
-            print('[itemscan] ERROR: could not write items.json');
-        end
+            next_id = stop + 1;
+            if (next_id > 65535) then
+                local f = io.open(('%s\\items.json'):fmt(addon.path), 'w');
+                if (f ~= nil) then
+                    f:write(json.encode(out));
+                    f:close();
+                    print(('[itemscan] items.json written (%d items). Copy to viewer data/ folder and restart the app.'):fmt(count));
+                else
+                    print('[itemscan] ERROR: could not write items.json');
+                end
+            end
+        end);
         return;
     end
 
