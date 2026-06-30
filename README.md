@@ -19,7 +19,7 @@ Use the built-in **Feedback** button in the app to send bug reports or feature i
 | **Items** | Every item across all bags with description, live FFXIAH market price, AH median, total inventory value, sortable columns, filters, and a per-item BG-Wiki link |
 | **Dashboard** | Gobbiebag quest completion tracker, knows which steps you've done from your inventory size, flags items you own |
 | **Character** | Your character name, main/sub job line, all 22 job levels in a grid (main/sub highlighted), and every equipped piece of gear with hover-over stat descriptions and BG-Wiki links |
-| **Map** | Current zone map with a live "you are here" dot that tracks your position in real time |
+| **Map** | Current zone map with a directional arrow showing your position and which way you are facing in real time, plus zoom, pan, and a center-on-player toggle |
 | **Records of Eminence** | Active objectives with progress, named and labeled |
 | **Quests** | Active (accepted, not completed) quests by area, named and BG-Wiki linked |
 | **Ambuscade** | Monthly boss reference |
@@ -102,7 +102,7 @@ If you update the Lua file while FFXI is running, click **Reload addon** in the 
 
 ## Maps
 
-Map images are not bundled (large third-party assets). To enable the live position dot:
+Map images are not bundled (large third-party assets). To enable the live position arrow:
 
 1. Open the **Map** tab and click **Download map pack**, the app downloads and installs everything automatically (~209 MB).
 2. Enable **Map tracking** via the Config tab or `/itemscan map` in-game.
@@ -117,7 +117,7 @@ Not supported.
 
 ### All users
 - FFXIAH price lookups are throttled and cached 24h, so they are not instant
-- Map dot requires the remapster PNG pack in your selected maps folder
+- Map arrow requires the remapster PNG pack in your selected maps folder
 - Private server item IDs may differ from retail; some item names may show as Unknown
 
 ---
