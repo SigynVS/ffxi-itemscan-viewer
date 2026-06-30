@@ -101,7 +101,9 @@ function gil(n) {
 const JOBS = ['WAR','MNK','WHM','BLM','RDM','THF','PLD','DRK','BST','BRD','RNG','SAM','NIN','DRG','SMN','BLU','COR','PUP','DNC','SCH','GEO','RUN'];
 
 // Equipment slot labels in slot-id order (0-15).
-const EQUIP_SLOTS = ['Main','Sub','Ranged','Ammo','Head','Neck','L.Ear','R.Ear','Body','Hands','L.Ring','R.Ring','Back','Waist','Legs','Feet'];
+// Order MUST match FFXI's equipment slot enum (0=Main ... 15=Back): the addon
+// sends each item's numeric slot, and the renderer labels bySlot[slot] by index.
+const EQUIP_SLOTS = ['Main','Sub','Ranged','Ammo','Head','Body','Hands','Legs','Feet','Neck','Waist','L.Ear','R.Ear','L.Ring','R.Ring','Back'];
 
 function escapeHtml(s) {
   return String(s ?? '')
@@ -952,7 +954,19 @@ if (mapCenterEl) mapCenterEl.checked = localStorage.getItem('mapCenter') !== '0'
 
 function clampZoom(z) { return Math.max(0.1, Math.min(8, z)); }
 
+// Keep the map inside the viewport: never leave black void when zoomed in, and
+// when the map is smaller than the viewport on an axis, center it on that axis.
+// This is what stops "center on me" and dragging from pushing the map off-screen.
+function clampMapPan() {
+  if (!mapImgW || !mapImgH) return;
+  const vw = mapViewEl.clientWidth, vh = mapViewEl.clientHeight;
+  const sw = mapImgW * mapZoom, sh = mapImgH * mapZoom;
+  mapPanX = sw <= vw ? (vw - sw) / 2 : Math.min(0, Math.max(vw - sw, mapPanX));
+  mapPanY = sh <= vh ? (vh - sh) / 2 : Math.min(0, Math.max(vh - sh, mapPanY));
+}
+
 function applyMapTransform() {
+  clampMapPan();
   mapStageEl.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapZoom})`;
   // counter-scale the arrow so it stays a constant on-screen size at any zoom
   mapDotEl.style.transform = `rotate(${mapHeadingDeg}deg) scale(${1 / mapZoom})`;
@@ -1019,7 +1033,14 @@ window.addEventListener('mouseup', () => { mapDragging = false; mapViewEl.classL
 if (mapResetEl) mapResetEl.addEventListener('click', () => fitMap());
 if (mapCenterEl) mapCenterEl.addEventListener('change', () => {
   localStorage.setItem('mapCenter', mapCenterEl.checked ? '1' : '0');
-  if (mapCenterEl.checked) centerOnPlayer();
+  if (mapCenterEl.checked) { centerOnPlayer(); } else { fitMap(); }
+});
+
+// Re-fit (or re-center) when the window size changes, so maximizing or resizing
+// shows the whole map instead of clipping the bottom.
+window.addEventListener('resize', () => {
+  if (!mapImgW) return;
+  if (mapCenterEl && mapCenterEl.checked) { centerOnPlayer(); } else { fitMap(); }
 });
 
 window.itemscan.onError((data) => {
