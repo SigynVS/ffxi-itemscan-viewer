@@ -178,8 +178,8 @@ function setAddonDir(dir) {
 
 // TCP server that receives data from the Lua addon over a localhost socket.
 // Protocol: single-char type prefix + raw JSON + newline.
-//   I{...}\n  — inventory payload (same schema as inventory.json)
-//   P{...}\n  — position payload { zone, x, y, z, heading }
+//   I{...}\n  - inventory payload (same schema as inventory.json)
+//   P{...}\n  - position payload { zone, x, y, z, heading }
 function startTcpServer() {
   const server = net.createServer((sock) => {
     auditLog('LUA_CONNECT', `${sock.remoteAddress}:${sock.remotePort}`);

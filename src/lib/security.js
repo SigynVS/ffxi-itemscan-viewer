@@ -17,9 +17,9 @@ function logPath() {
 
 function auditLog(event, detail = '') {
   try {
-    const line = `[${new Date().toISOString()}] ${event}${detail ? ' — ' + detail : ''}\n`;
+    const line = `[${new Date().toISOString()}] ${event}${detail ? ' - ' + detail : ''}\n`;
     fs.appendFileSync(logPath(), line, 'utf8');
-  } catch (_) { /* non-fatal — never let logging crash the app */ }
+  } catch (_) { /* non-fatal - never let logging crash the app */ }
 }
 
 // ── File guards ──────────────────────────────────────────────────
@@ -135,7 +135,7 @@ function validateInventoryJson(raw) {
       auditLog('SCHEMA_INVALID', `item.description not a string for id=${item.id}`);
       throw new Error('Item description must be a string');
     }
-    // Clamp description — game data is at most ~256 chars; anything larger is suspicious
+    // Clamp description - game data is at most ~256 chars; anything larger is suspicious
     if (typeof item.description === 'string' && item.description.length > 2000) {
       item.description = item.description.slice(0, 2000);
     }
@@ -151,7 +151,7 @@ function validateAddonPath(dirPath) {
     throw new Error('Addon path must be a non-empty string');
   }
   if (dirPath.includes('\0')) {
-    auditLog('PATH_INVALID', 'null byte in path — possible path traversal attempt');
+    auditLog('PATH_INVALID', 'null byte in path - possible path traversal attempt');
     throw new Error('Path contains null bytes');
   }
   const resolved = path.resolve(dirPath.trim());

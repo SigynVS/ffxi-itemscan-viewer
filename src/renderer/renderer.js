@@ -126,9 +126,9 @@ function passesFilters(it) {
 
 function ahCell(it) {
   const p = priceCache.get(it.id);
-  if (!p) return '<span class="dash">—</span>';
+  if (!p) return '<span class="dash">-</span>';
   if (p.price && p.price > 0) {
-    const stale = p.stale ? ' title="Older than 24h — re-fetch to refresh" class="ah stale"' : ' class="ah"';
+    const stale = p.stale ? ' title="Older than 24h - re-fetch to refresh" class="ah stale"' : ' class="ah"';
     return `<span${stale}>${gil(p.price)}</span>`;
   }
   if (p.error) return '<span class="dash" title="' + escapeHtml(p.error) + '">err</span>';
@@ -149,10 +149,10 @@ function render() {
 
     const vendor = (it.vendorPrice && it.vendorPrice > 0)
       ? `<span class="gil">${gil(it.vendorPrice)}</span>`
-      : '<span class="dash">—</span>';
+      : '<span class="dash">-</span>';
     const gobbie = it.gobbiebag
       ? `<span class="tag">${escapeHtml(it.gobbiebag)}</span>`
-      : '<span class="dash">—</span>';
+      : '<span class="dash">-</span>';
     const questSpans = it.quests.length
       ? it.quests.map((q) => `<span class="quest">${escapeHtml(q)}</span>`).join('')
       : '';
@@ -265,7 +265,7 @@ function renderDashboard(data) {
 
   const when = data.timestamp
     ? new Date(data.timestamp * 1000).toLocaleString()
-    : '—';
+    : '-';
 
   dashEl.innerHTML = `
     <div class="db-header">
@@ -367,7 +367,7 @@ function missionStatusOf(entry) {
 
 function missionValueCell(line, entry, labels) {
   if (!entry || entry.value === undefined || entry.value === null) {
-    return '<span class="dash">—</span>';
+    return '<span class="dash">-</span>';
   }
   const v = entry.value;
   if (v === 65535) return '<span class="muted">Completed</span>';
@@ -378,7 +378,7 @@ function missionValueCell(line, entry, labels) {
     return `<span class="mission-link" data-wiki="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
   }
   return `<input class="mission-input" data-key="${labelKey}"
-    placeholder="stage ${v} — type the mission name" />`;
+    placeholder="stage ${v} - type the mission name" />`;
 }
 
 async function renderMissions(missions, character) {
@@ -503,7 +503,7 @@ function applyRoeRender() {
       <div class="status-row-body">
         <input class="roe-name-input" data-id="${o.id}"
           value="${escapeHtml(name)}"
-          placeholder="Objective #${o.id} — type a name" />
+          placeholder="Objective #${o.id} - type a name" />
       </div>
       <div class="status-row-right roe-prog">${o.progress.toLocaleString('en-US')}</div>
     </div>`;
@@ -576,9 +576,9 @@ function renderDetailContent() {
   // Fields
   const vendorHtml = (item.vendorPrice && item.vendorPrice > 0)
     ? `<span class="gil">${gil(item.vendorPrice)}</span>`
-    : '<span class="dash">—</span>';
+    : '<span class="dash">-</span>';
 
-  let ahHtml = '<span class="dash">—</span>';
+  let ahHtml = '<span class="dash">-</span>';
   if (p) {
     if (p.price && p.price > 0) {
       ahHtml = `<span class="${p.stale ? 'ah stale' : 'ah'}">${gil(p.price)}</span>`;
@@ -612,7 +612,7 @@ function renderDetailContent() {
     </div>` : ''}
   </div>`;
 
-  // Requirements — quests this item is used in
+  // Requirements - quests this item is used in
   let sections = '';
   if (item.quests.length > 0) {
     const items = item.quests.map((q) =>
@@ -637,7 +637,7 @@ function renderDetailContent() {
         </li>`;
       }).join('');
       sections += `<div class="detail-section">
-        <div class="detail-section-head">${escapeHtml(item.gobbiebag)} — Required Items</div>
+        <div class="detail-section-head">${escapeHtml(item.gobbiebag)} - Required Items</div>
         <ul class="req-list">${partItems}</ul>
       </div>`;
     }
@@ -722,7 +722,7 @@ function renderAmbuscade(ambuscade) {
 
   // Vol 1 bosses
   const bossList = ambuscade.bosses && ambuscade.bosses.length
-    ? `<div class="ambuscade-section"><strong>Vol. 1 — ${escapeHtml(ambuscade.mount || 'Unknown')}:</strong>
+    ? `<div class="ambuscade-section"><strong>Vol. 1 - ${escapeHtml(ambuscade.mount || 'Unknown')}:</strong>
        <ul>${ambuscade.bosses.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul></div>`
     : `<div class="ambuscade-section"><strong>Vol. 1:</strong> ${escapeHtml(ambuscade.mount || 'Unknown')}</div>`;
 
@@ -754,7 +754,7 @@ function renderAmbuscade(ambuscade) {
   // Vol 2
   const vol2 = ambuscade.vol2;
   const vol2Html = vol2
-    ? `<div class="ambuscade-section"><strong>Vol. 2 — ${escapeHtml(vol2.mount || 'Unknown')}:</strong>
+    ? `<div class="ambuscade-section"><strong>Vol. 2 - ${escapeHtml(vol2.mount || 'Unknown')}:</strong>
        ${vol2.adds && vol2.adds.length
          ? `<ul>${[`${escapeHtml(vol2.boss || '')} (boss)`].concat(vol2.adds.map((a) => escapeHtml(a))).map((a) => `<li>${a}</li>`).join('')}</ul>`
          : `${escapeHtml(vol2.boss || '')}`}
@@ -813,7 +813,7 @@ function hideEquipTooltip() {
 
 function renderCharacter(data) {
   // ── Header ──────────────────────────────────────────────────────
-  charNameEl.textContent = data.character || '—';
+  charNameEl.textContent = data.character || '-';
 
   const mainName = data.mainJob ? (JOBS[data.mainJob - 1] || '???') : null;
   const subName  = data.subJob  ? (JOBS[data.subJob  - 1] || null)  : null;
@@ -836,7 +836,7 @@ function renderCharacter(data) {
               :            'job-cell is-locked';
     return `<div class="${cls}">
       <span class="job-abbr">${name}</span>
-      <span class="job-lvl">${lvl > 0 ? lvl : '—'}</span>
+      <span class="job-lvl">${lvl > 0 ? lvl : '-'}</span>
     </div>`;
   }).join('');
 
@@ -849,7 +849,7 @@ function renderCharacter(data) {
     if (!eq) {
       return `<div class="equip-row equip-empty">
         <span class="equip-slot-label">${label}</span>
-        <span class="equip-item-name muted">—</span>
+        <span class="equip-item-name muted">-</span>
       </div>`;
     }
     return `<div class="equip-row" data-desc="${escapeHtml(eq.description || '')}">
@@ -892,7 +892,7 @@ window.itemscan.onInventory(async (data) => {
   const when = data.timestamp
     ? new Date(data.timestamp * 1000).toLocaleTimeString()
     : 'unknown time';
-  metaEl.textContent = `${data.character} — ${data.count} items — scanned ${when}`;
+  metaEl.textContent = `${data.character} - ${data.count} items - scanned ${when}`;
 
   renderDashboard(data);
   renderStats();
@@ -1306,7 +1306,7 @@ downloadMapsBtnEl.addEventListener('click', async () => {
     downloadMapsBtnEl.textContent = 'Maps installed';
     setTimeout(() => { mapDownloadWrapEl.style.display = 'none'; }, 3000);
   } else {
-    mapDownloadLabelEl.textContent = 'Download failed — check your connection and try again.';
+    mapDownloadLabelEl.textContent = 'Download failed - check your connection and try again.';
     downloadMapsBtnEl.disabled = false;
     downloadMapsBtnEl.textContent = 'Retry download';
   }
@@ -1370,7 +1370,7 @@ fbSubmit.addEventListener('click', async () => {
     fbDescription.value = '';
     setTimeout(() => feedbackOverlay.classList.add('hidden'), 1500);
   } else {
-    fbStatus.textContent = 'Failed to send — check your connection.';
+    fbStatus.textContent = 'Failed to send - check your connection.';
     fbStatus.className = 'fb-status err';
   }
   fbSubmit.disabled = false;

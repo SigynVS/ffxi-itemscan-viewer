@@ -19,7 +19,7 @@ function loadJson(name) {
 // Vendor prices: { "<itemId>": <gilPrice> }
 const vendorPrices = loadJson('vendor_prices.json');
 
-// Gobbiebag: { "<itemId>": "<note>" } — items accepted by Gobbie quests.
+// Gobbiebag: { "<itemId>": "<note>" } - items accepted by Gobbie quests.
 const gobbiebag = loadJson('gobbiebag.json');
 
 // Quest turn-ins: { "<itemId>": ["Quest A", "Mission B"] }

@@ -174,7 +174,7 @@ body.hide-desc .col-desc, body.hide-desc .desc { display: none; }
 .cfg-row select { background: var(--row); color: var(--text); border: 1px solid var(--border); border-radius: 2px; padding: 3px 4px; }
 .cfg-path { color: var(--text); background: var(--row); padding: 2px 6px; border-radius: 2px; word-break: break-all; font-size: 12px; font-family: var(--mono); }
 
-/* Tabs — serif, gold rule under the active one. */
+/* Tabs - serif, gold rule under the active one. */
 .tabs {
   flex: none;
   display: flex;
@@ -495,7 +495,7 @@ body.hide-desc .col-desc, body.hide-desc .desc { display: none; }
   border-bottom: 1px solid var(--border);
 }
 
-/* Job levels grid — 6 columns */
+/* Job levels grid - 6 columns */
 .job-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);

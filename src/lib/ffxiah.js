@@ -37,7 +37,7 @@ let cooldownUntil = 0; // no request starts before this timestamp
 let concurrency = 1;
 
 // Median price appears in the page's embedded data; this matches the common
-// "median":<number> field. Fragile by nature — see note above.
+// "median":<number> field. Fragile by nature - see note above.
 const PRICE_REGEX = /"median"\s*:\s*(\d+)/i;
 
 let cache = null;
