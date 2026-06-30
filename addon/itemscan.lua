@@ -17,8 +17,8 @@
 --]]
 
 addon.name    = 'itemscan';
-addon.author  = 'Brian Justice';
-addon.version = '0.1.0-beta.1';
+addon.author  = 'SigynVS';
+addon.version = '0.1.0-beta.2';
 addon.desc    = 'Streams inventory and position data to the FFXI Item Scan viewer app.';
 
 require 'common';
