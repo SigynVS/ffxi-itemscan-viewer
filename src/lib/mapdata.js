@@ -15,7 +15,8 @@ function load(name) {
 }
 
 // Per-zone calibration data sourced from Electron-FFXI-Atlas by miguelstrife
-// (https://github.com/miguelstrife/Electron-FFXI-Atlas), MIT licensed.
+// (https://github.com/miguelstrife/Electron-FFXI-Atlas). Used with attribution;
+// that repo has no license file, so the usage terms are unconfirmed (ask the author).
 // Files live under data/atlas/ to keep third-party data clearly separated.
 const zoneOffset    = load('atlas/zoneOffset.json');
 const zonesWithMaps = load('atlas/zonesWithMaps.json');
