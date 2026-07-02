@@ -412,6 +412,13 @@ body.hide-desc .col-desc, body.hide-desc .desc { display: none; }
 .badge-quest { background: rgba(194,90,72,0.15); color: var(--crimson); border: 1px solid rgba(194,90,72,0.4); }
 .badge-gobbie { background: rgba(233,196,94,0.13); color: var(--gold); border: 1px solid rgba(233,196,94,0.3); }
 .badge-vendor { background: rgba(149,171,107,0.13); color: var(--green); border: 1px solid rgba(149,171,107,0.3); }
+.badge-rare { background: rgba(198,96,96,0.15); color: #dd9090; border: 1px solid rgba(198,96,96,0.4); }
+.badge-ex { background: rgba(154,143,118,0.16); color: #c2b291; border: 1px solid rgba(154,143,118,0.42); }
+
+/* Compact Rare/Ex tags shown inline in the Items list name column. */
+.rex { display: inline-block; font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 2px; margin-left: 6px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.05em; }
+.rex-rare { background: rgba(198,96,96,0.16); color: #dd9090; }
+.rex-ex { background: rgba(154,143,118,0.18); color: #c2b291; }
 
 .detail-fields { margin-bottom: 14px; }
 .detail-field { display: grid; grid-template-columns: 86px 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }

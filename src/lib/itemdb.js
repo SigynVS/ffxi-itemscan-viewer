@@ -29,4 +29,12 @@ function getItemDesc(id) {
   return entry ? entry.desc : '';
 }
 
-module.exports = { getItemName, getItemDesc };
+// Raw item flag bits (LandSandBoat ItemFlag enum), 0 when unknown. Present in
+// items.json only for items that have flags set; older dumps without the field
+// return 0 so the app degrades gracefully (no badges, nothing excluded).
+function getItemFlags(id) {
+  const entry = db()[String(id)];
+  return (entry && typeof entry.flags === 'number') ? entry.flags : 0;
+}
+
+module.exports = { getItemName, getItemDesc, getItemFlags };

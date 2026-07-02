@@ -1,7 +1,7 @@
 'use strict';
 
 const { vendorPrices, gobbiebag, quests, roeNames, questNames, missionNames, ambuscade } = require('./datasets');
-const { getItemName, getItemDesc } = require('./itemdb');
+const { getItemName, getItemDesc, getItemFlags } = require('./itemdb');
 
 const BASE_INVENTORY = 30;       // Slots before any Gobbiebag quest.
 const SLOTS_PER_PART = 5;        // Each completed Gobbiebag quest adds 5.
@@ -127,12 +127,18 @@ function enrichInventory(data, liveAmbuscade) {
     const key = it.name;
     const gb = gobbiebag[key] !== undefined ? gobbiebag[key] : null;
     const qs = Array.isArray(quests[key]) ? quests[key] : [];
+    // Static item flags from itemdb (LandSandBoat ItemFlag bits). Rare/Ex drive
+    // the badges; NoAuction excludes an item from the AH value total.
+    const flags = getItemFlags(it.id);
     return {
       ...it,
       vendorPrice: vendorPrices[key] !== undefined ? vendorPrices[key] : null,
       gobbiebag: gb,
       quests: qs,
-      hasUse: gb !== null || qs.length > 0
+      hasUse: gb !== null || qs.length > 0,
+      rare: (flags & 0x8000) !== 0,
+      ex: (flags & 0x4000) !== 0,
+      noAuction: (flags & 0x0040) !== 0
     };
   });
 

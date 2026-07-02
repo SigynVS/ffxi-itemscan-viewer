@@ -159,10 +159,12 @@ function render() {
       ? it.quests.map((q) => `<span class="quest">${escapeHtml(q)}</span>`).join('')
       : '';
     const wiki = `<span class="wikilink" data-wiki="${escapeHtml(it.name)}">wiki &#8599;</span>`;
+    const rex = (it.rare ? '<span class="rex rex-rare" title="Rare">Rare</span>' : '')
+              + (it.ex ? '<span class="rex rex-ex" title="Exclusive">Ex</span>' : '');
 
     return `<tr class="item-row" data-index="${idx}">
       <td class="col-status"><div class="${dotCls}"></div></td>
-      <td class="name">${escapeHtml(it.name)}</td>
+      <td class="name">${escapeHtml(it.name)}${rex}</td>
       <td class="num">${it.count}</td>
       <td class="where">${escapeHtml(it.container_name)}</td>
       <td class="desc"><span class="desc-clip" title="${escapeHtml(it.description)}">${escapeHtml(it.description)}</span></td>
@@ -530,6 +532,7 @@ function renderStats() {
   }
   let total = 0, priced = 0;
   for (const it of allItems) {
+    if (it.noAuction) continue;  // can't be listed on the AH, so not part of AH value
     const p = priceCache.get(it.id);
     if (p && typeof p.price === 'number') { total += p.price * (it.count || 1); priced++; }
   }
@@ -571,6 +574,8 @@ function renderDetailContent() {
 
   // Status badges
   const badges = [];
+  if (item.rare) badges.push('<span class="badge badge-rare">Rare</span>');
+  if (item.ex) badges.push('<span class="badge badge-ex">Ex</span>');
   if (item.quests.length > 0) badges.push('<span class="badge badge-quest">Quest Item</span>');
   if (item.gobbiebag) badges.push(`<span class="badge badge-gobbie">${escapeHtml(item.gobbiebag)}</span>`);
   if (item.vendorPrice && item.vendorPrice > 0) badges.push('<span class="badge badge-vendor">Vendor</span>');

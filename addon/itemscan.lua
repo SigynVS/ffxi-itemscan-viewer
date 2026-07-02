@@ -18,13 +18,14 @@
 
 addon.name    = 'itemscan';
 addon.author  = 'SigynVS';
-addon.version = '0.1.0-beta.2';
+addon.version = '0.1.0-beta.3';
 addon.desc    = 'Streams inventory and position data to the FFXI Item Scan viewer app.';
 
 require 'common';
 
 local json    = require 'json';
 local socket  = require 'socket';
+local slip_data = require('slips');   -- Porter Moogle storage slip rosters (read-only)
 
 -- Equipment slot id -> friendly label.
 local equip_slot_names = T{
@@ -62,7 +63,7 @@ local itemscan = T{
     missions = {},   -- storyline -> raw current-mission stage, from packet 0x056
     quests = {},     -- area -> { current = {ids}, completed = {ids} }, from 0x056
     quest_raw = nil, -- raw bytes of the last 0x0070 packet, for offset verification
-    maptrack = false,-- when true, write position.json only on meaningful movement
+    maptrack = false,-- when true, send position only on meaningful movement
     frame = 0,       -- frame counter for throttling position writes
     scan_at = 0,     -- frame to run a debounced auto-scan (0 = none pending)
     last_config = {},-- last-seen values from itemscan_config.json (app-driven)
@@ -71,13 +72,8 @@ local itemscan = T{
     sock_retry = 0,  -- frame at which to attempt next reconnect
 };
 
--- Connects to the viewer's TCP server (localhost:51234). Fully non-blocking so
--- it can never stall the render thread. A non-blocking connect returns "timeout"
--- while the TCP handshake is still in progress; that is success-in-progress, not
--- failure, so the socket is kept. (The original bug closed it on "timeout", which
--- is why inventory was never delivered.) On localhost the handshake usually
--- completes instantly and returns 1; if it is still pending, the socket is kept
--- and the send path below skips on "timeout" until it becomes writable.
+-- Non-blocking connect. A "timeout"/"already connected" result means the
+-- handshake is still in flight, so keep the socket; sends start once writable.
 local function connect_viewer()
     local s = socket.tcp();
     s:settimeout(0);
@@ -106,9 +102,8 @@ local function send_to_viewer(prefix, json_str)
     end
 end
 
--- Settings the external app can drive, persisted in itemscan_config.json beside
--- this addon. The app writes the file; the addon reads it on load and polls it,
--- applying a value only when it changed (so in-game /commands aren't clobbered).
+-- App-driven settings in itemscan_config.json. Applied only when a value
+-- changed, so in-game /commands are not clobbered.
 local function config_path()
     return ('%s\\itemscan_config.json'):fmt(addon.path);
 end
@@ -201,15 +196,9 @@ local function u32(data, pos)
     return b1 + (b2 * 256) + (b3 * 65536) + (b4 * 16777216);
 end
 
---[[
-* Parses incoming packet 0x056 (Quest/Mission Log), which is multiplexed by a
-* 16-bit Type selector. Different Types carry different storylines' current
-* mission stage. Offsets are the Windower fields.lua byte offsets + 1 (Ashita's
-* data:byte is 1-based). Only the RAW stage numbers are exported here; turning
-* them into mission names is a separate, fallible lookup layer added later.
-*
-* Verified source: Windower libs/packets/fields.lua (packet 0x056).
---]]
+-- Packet 0x056 (Quest/Mission Log), multiplexed by a 16-bit Type selector.
+-- Offsets are Windower fields.lua + 1 (Ashita data:byte is 1-based). Exports raw
+-- stage numbers; name lookup is app-side.
 local function parse_missions(data)
     local m = itemscan.missions;
     local mtype = u16(data, 0x25);
@@ -240,13 +229,8 @@ local function parse_missions(data)
     return mtype;
 end
 
---[[
-* Parses incoming packet 0x111 (Eminence Update), which carries the player's
-* up to 30 active Records of Eminence objectives. Each 4-byte entry packs a
-* 12-bit objective id and a 20-bit progress value, starting at byte offset 5.
-* Method mirrors Windower's roe addon. Arithmetic is used instead of bit ops
-* so 32-bit values stay safe as Lua doubles.
---]]
+-- Packet 0x111 (Eminence): up to 30 entries from offset 5, each 4 bytes packing
+-- a 12-bit objective id + 20-bit progress. Mirrors Windower's roe addon.
 local function parse_roe(data)
     -- Ordered list of { id, progress } preserving the packet's slot order, which
     -- may match the in-game RoE menu order.
@@ -281,14 +265,8 @@ local ffxi_glyphs = {
     [0x26] = '[Dark]',
 };
 
---[[
-* Converts a raw FFXI text string into guaranteed-valid UTF-8.
-*
-* - ASCII bytes pass through unchanged.
-* - A 0xEF lead byte + known selector becomes a readable element tag.
-* - Any other high byte is transcoded losslessly (latin-1 -> UTF-8) so the
-*   output is always valid UTF-8 and never breaks JSON.parse downstream.
---]]
+-- Raw FFXI text -> valid UTF-8. 0xEF + selector becomes an element tag; any
+-- other high byte is transcoded latin-1 -> UTF-8 so JSON.parse never chokes.
 local function sanitize(str)
     if (str == nil) then return ''; end
     local out = {};
@@ -318,10 +296,7 @@ local function sanitize(str)
     return table.concat(out);
 end
 
---[[
-* Resolves an item's static name and description from the resource manager.
-* Returns name, description (both UTF-8 strings; description may be empty).
---]]
+-- Item name + description from the resource manager (UTF-8; desc may be empty).
 local function resolve_item(id)
     local res = AshitaCore:GetResourceManager():GetItemById(id);
     if (res == nil) then
@@ -330,6 +305,35 @@ local function resolve_item(id)
     local name = (res.Name ~= nil and res.Name[1]) or ('Unknown (%d)'):fmt(id);
     local desc = (res.Description ~= nil and res.Description[1]) or '';
     return sanitize(name), sanitize(desc);
+end
+
+-- Maps each storage slip item id to its 1-based position (1..28) for labeling.
+local slip_index = T{ };
+for i, id in ipairs(slip_data.ids) do slip_index[id] = i; end
+
+-- Tests bit `pos` (0-based) of a byte value. Arithmetic so it needs no bit lib.
+local function bit_set(byteval, pos)
+    return (math.floor(byteval / (2 ^ pos)) % 2) >= 1;
+end
+
+-- Expands a slip's stored gear from its Extra bitmask over the fixed roster
+-- (slips.lua): bit i set means roster item i is stored. Read-only (local extdata).
+local function append_slip_items(entry, items)
+    local roster = slip_data.items[entry.Id];
+    if (roster == nil or entry.Extra == nil) then return; end
+    local label = ('Porter Slip %02d'):fmt(slip_index[entry.Id] or 0);
+    for i = 1, #roster do
+        local b = entry.Extra:byte(math.floor((i - 1) / 8) + 1) or 0;
+        if (bit_set(b, (i - 1) % 8)) then
+            items:append(T{
+                id             = roster[i],
+                count          = 1,
+                container      = 0x100 + (slip_index[entry.Id] or 0),
+                container_name = label,
+                slot           = i,
+            });
+        end
+    end
 end
 
 --[[
@@ -353,6 +357,10 @@ local function collect_inventory()
                         container_name = container_names[container] or ('Container %d'):fmt(container),
                         slot      = slot,
                     });
+                    -- If this item is a storage slip, expand its stored gear too.
+                    if (slip_data.items[entry.Id] ~= nil) then
+                        append_slip_items(entry, items);
+                    end
                 end
             end
         end
@@ -391,9 +399,7 @@ local function do_scan(silent)
         end
     end
 
-    -- Current equipment: GetEquippedItem returns a packed Index where
-    -- the low byte is the slot within the container and the high byte is
-    -- the container id. Arithmetic is used instead of bit ops for portability.
+    -- GetEquippedItem returns a packed Index: low byte = slot, high byte = container.
     local equipment = T{};
     for slot = 0, 15 do
         local equip = inv:GetEquippedItem(slot);
@@ -441,12 +447,9 @@ local function do_scan(silent)
     end
 end
 
---[[
-* Writes the player's current zone + position to position.json for the external
-* map display. Kept separate from inventory.json so it can update frequently
-* without rewriting the large inventory payload. All three axes are exported so
-* the viewer can pick the correct horizontal pair (verify against movement).
---]]
+-- Sends the player's zone + position over the socket for the map, only when the
+-- zone changed or they moved more than 0.5 yalms. All three axes go so the viewer
+-- can pick the right horizontal pair.
 local function write_position()
     local party = AshitaCore:GetMemoryManager():GetParty();
     local ent   = AshitaCore:GetMemoryManager():GetEntity();
@@ -574,10 +577,8 @@ ashita.events.register('command', 'command_cb', function (e)
     -- Dumps all known item names and descriptions to items.json beside this addon.
     -- Copy that file to the viewer's data/ folder then restart the app.
     if (#args >= 2 and args[2]:lower() == 'dumpresources') then
-        -- Sweep all 65535 item ids, but in per-frame chunks via ashita.tasks so
-        -- the game thread never freezes. A single 65k synchronous loop could
-        -- stall the client long enough to disconnect you, which at a bad moment
-        -- (trade, synthesis, an event) can cost items. This stays responsive.
+        -- Sweep all 65535 ids in per-frame chunks via ashita.tasks so the game
+        -- thread never freezes (a synchronous 65k loop can stall or disconnect you).
         local rm = AshitaCore:GetResourceManager();
         local out = {};
         local count = 0;
@@ -596,6 +597,11 @@ ashita.events.register('command', 'command_cb', function (e)
                         desc = (res.Description ~= nil and res.Description[1] ~= nil)
                             and sanitize(res.Description[1]) or '',
                     };
+                    -- Flag bits (ItemFlag): NoAuction 0x40, Ex 0x4000, Rare 0x8000.
+                    -- Stored only when set; the viewer badges Rare/Ex from these.
+                    if (type(res.Flags) == 'number' and res.Flags ~= 0) then
+                        out[tostring(id)].flags = res.Flags;
+                    end
                     count = count + 1;
                 end
             end
