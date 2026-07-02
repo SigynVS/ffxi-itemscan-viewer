@@ -16,7 +16,7 @@ Use the built-in **Feedback** button in the app to send bug reports or feature i
 
 | Tab | Description |
 |-----|-------------|
-| **Items** | Every item across all bags with description, live FFXIAH market price, AH median, total inventory value, sortable columns, filters, and a per-item BG-Wiki link |
+| **Items** | Every item across all bags, including gear stored on Porter Moogle slips, with description, live FFXIAH market price, AH median, Rare/Ex badges, total inventory value, sortable columns, filters, and a per-item BG-Wiki link |
 | **Dashboard** | Gobbiebag quest completion tracker, knows which steps you've done from your inventory size, flags items you own |
 | **Character** | Your character name, main/sub job line, all 22 job levels in a grid (main/sub highlighted), and every equipped piece of gear with hover-over stat descriptions and BG-Wiki links |
 | **Map** | Current zone map with a directional arrow showing your position and which way you are facing in real time, plus zoom, pan, and a center-on-player toggle |
@@ -24,7 +24,7 @@ Use the built-in **Feedback** button in the app to send bug reports or feature i
 | **Quests** | Active (accepted, not completed) quests by area, named and BG-Wiki linked |
 | **Ambuscade** | Monthly boss reference |
 | **Missions** | Current stage for every storyline (Nation, Zilart, CoP, ToAU, Assault, WotG, Adoulin, Rhapsodies, Voracious, and the add-on scenarios), each a clickable BG-Wiki link |
-| **Config** | In-game addon toggles, path settings, quick-reference command list, and a one-click **Reload addon** button |
+| **Config** | In-game addon toggles, path settings, a quick-reference command list, and one-click **Install/update** and **Reload addon** buttons |
 
 ---
 
@@ -51,10 +51,12 @@ Grab the latest **`FFXI Item Scan Setup.exe`** from the [Releases](../../release
 
 #### Ashita v4
 
-1. Copy `addon/itemscan.lua` from this repo into a new folder inside your Ashita addons directory:
+1. In the app's **Config** tab, confirm or **Browse…** to your Ashita `addons` folder, then click **Install / update**. This copies the addon files into place for you.
+
+   Prefer to do it by hand? Copy both `addon/itemscan.lua` and `addon/slips.lua` from this repo into:
 
    ```
-   <Ashita>\addons\itemscan\itemscan.lua
+   <Ashita>\addons\itemscan\
    ```
 
 2. Add it to your Ashita boot script so it loads automatically on every login:
@@ -150,6 +152,7 @@ This project builds on the FFXI community's reverse-engineering work:
 - **[Electron-FFXI-Atlas](https://github.com/miguelstrife/Electron-FFXI-Atlas)**, per-zone map calibration data and game→pixel coordinate formula
 - **[remapster_maps](https://github.com/AkadenTK/remapster_maps)**, map image packs (user-supplied, not redistributed here)
 - **[Ivaar's Windower QuestLog](https://github.com/Ivaar/Windower-addons)**, active-quest name tables
+- **[find](https://github.com/Sippius/Ashita-v4-addons)** by MalRD, zombie343, and sippius (MIT licensed), storage slip content roster data
 - **[DarkstarProject](https://github.com/DarkstarProject/darkstar)**, mission and assault ID references
 - **[Windower](https://github.com/Windower/Lua)**, packet structure references
 - **BG-Wiki**, mission, quest, and Gobbiebag data
