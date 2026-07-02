@@ -25,6 +25,11 @@
         "from": "data",
         "to": "data",
         "filter": ["**/*", "!price_cache.json"]
+      },
+      {
+        "from": "addon",
+        "to": "addon",
+        "filter": ["itemscan.lua", "slips.lua"]
       }
     ],
     "win": {

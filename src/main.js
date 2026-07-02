@@ -32,6 +32,7 @@ const { getPrice, getCachedPrices, setConcurrency } = require('./lib/ffxiah');
 const { getLabels, setLabel } = require('./lib/roelabels');
 const { getMissionLabels, setMissionLabel } = require('./lib/missionlabels');
 const { getZoneMap, toPercent, mapImageDataUrl, getMapsDir, setMapsDir } = require('./lib/mapdata');
+const { ADDON_SRC_DIR } = require('./lib/paths');
 const feedbackCfg = (() => { try { return require('./lib/feedback.config'); } catch { return { webhookUrl: null }; } })();
 
 // Persisted app settings (the configurable Ashita addon folder, etc.).
@@ -438,6 +439,25 @@ ipcMain.handle('addon:reload', () => {
   } catch (err) {
     auditLog('ADDON_RELOAD_FAIL', err.message);
     return false;
+  }
+});
+
+// Copies the bundled Ashita addon files (itemscan.lua, slips.lua) into the
+// configured addon folder, creating it if needed. Lets testers skip manually
+// copying files into their Ashita install.
+ipcMain.handle('addon:install', () => {
+  try {
+    const dir = validateAddonPath(addonDir);
+    fs.mkdirSync(dir, { recursive: true });
+    const files = ['itemscan.lua', 'slips.lua'];
+    for (const f of files) {
+      fs.copyFileSync(path.join(ADDON_SRC_DIR, f), path.join(dir, f));
+    }
+    auditLog('ADDON_INSTALL', `installed ${files.join(', ')} to ${dir}`);
+    return { ok: true, dir };
+  } catch (err) {
+    auditLog('ADDON_INSTALL_FAIL', err.message);
+    return { ok: false, error: err.message };
   }
 });
 

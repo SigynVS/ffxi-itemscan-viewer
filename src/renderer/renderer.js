@@ -1277,6 +1277,19 @@ document.getElementById('browseAddonDir').addEventListener('click', async () => 
   try { await window.itemscan.browseAddonDir(); refreshConfigInfo(); } catch (_) { /* ignore */ }
 });
 
+const installAddonBtn = document.getElementById('installAddon');
+installAddonBtn.addEventListener('click', async () => {
+  installAddonBtn.disabled = true;
+  installAddonBtn.textContent = 'Installing…';
+  const result = await window.itemscan.installAddon();
+  installAddonBtn.textContent = result.ok ? 'Installed ✓' : 'Failed ✗';
+  installAddonBtn.title = result.ok ? `Copied to ${result.dir}` : (result.error || '');
+  setTimeout(() => {
+    installAddonBtn.textContent = 'Install / update';
+    installAddonBtn.disabled = false;
+  }, 3000);
+});
+
 const reloadAddonBtn = document.getElementById('reloadAddon');
 reloadAddonBtn.addEventListener('click', async () => {
   reloadAddonBtn.disabled = true;
